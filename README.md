@@ -6,24 +6,32 @@ Perform simple sentiment analysis on subreddit posts.
 
 Create & activate new virtual environment
 
-```bash
+```sh
 $ python3 -m venv venv
 $ . venv/bin/activate
 ```
 
 Install the requirements
 
-```bash
+```sh
 $ pip install -r requirements.txt
 ```
 
 Or install the latest versions (`-U` for upgrade):
 
-```bash
+```sh
 $ pip install -U -r requirements.txt
 ```
 
+## Run program
+
+```sh
+$ python program_name.py
+```
+
 ## Uninstall all pip packages
+
+Useful for debugging, for example, to see which packages are needed and which are not. This is just a helpful note for myself.
 
 ```bash
 $ pip uninstall -y -r <(pip freeze)
