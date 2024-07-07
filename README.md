@@ -1,6 +1,6 @@
 # Reddit sentiment
 
-TBA
+Perform simple sentiment analysis on subreddit posts.
 
 ## Set up env
 
