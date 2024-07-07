@@ -23,7 +23,7 @@ Or install the latest versions (`-U` for upgrade):
 $ pip install -U -r requirements.txt
 ```
 
-Uninstall all pip packages
+## Uninstall all pip packages
 
 ```bash
 $ pip uninstall -y -r <(pip freeze)
