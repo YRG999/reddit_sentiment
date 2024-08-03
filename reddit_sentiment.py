@@ -143,11 +143,11 @@ def main():
         summary = summarize_comments(post, post_comments)
         summaries.append(summary)
 
-    log_to_csv(results, f"reddit_sentiment_analysis_{subreddit_name}_{sort_method}.csv")
-    print(f"Detailed results have been logged to reddit_sentiment_analysis_{subreddit_name}_{sort_method}.csv")
+    log_to_csv(results, f"reddit_sentiment_analysis_{subreddit_name}_{sort_method}_{current_timestamp}.csv")
+    print(f"Detailed results have been logged to reddit_sentiment_analysis_{subreddit_name}_{sort_method}_{current_timestamp}.csv")
 
-    log_summaries_to_csv(summaries, f"reddit_sentiment_summaries_{subreddit_name}_{sort_method}.csv")
-    print(f"Comment summaries have been logged to reddit_sentiment_summaries_{subreddit_name}_{sort_method}.csv")
+    log_summaries_to_csv(summaries, f"reddit_sentiment_summaries_{subreddit_name}_{sort_method}_{current_timestamp}.csv")
+    print(f"Comment summaries have been logged to reddit_sentiment_summaries_{subreddit_name}_{sort_method}_{current_timestamp}.csv")
 
 if __name__ == "__main__":
     main()

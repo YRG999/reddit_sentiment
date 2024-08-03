@@ -23,6 +23,10 @@ Or install the latest versions (`-U` for upgrade):
 $ pip install -U -r requirements.txt
 ```
 
+Create an `.env` file
+
+Copy `.env.example` file and replace with your keys.
+
 ## Run program
 
 ```sh
