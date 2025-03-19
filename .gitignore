@@ -3,3 +3,4 @@ __pycache__/
 _notes/
 venv/
 .env
+summarizer

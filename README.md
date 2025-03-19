@@ -40,3 +40,9 @@ Useful for debugging, for example, to see which packages are needed and which ar
 ```bash
 $ pip uninstall -y -r <(pip freeze)
 ```
+
+## uncommit & unstage
+
+* [how-can-i-unstage-my-files-again-after-making-a-local-commit](https://stackoverflow.com/questions/6682740/how-can-i-unstage-my-files-again-after-making-a-local-commit)
+* `git reset --soft HEAD~1` - reverts back to commit
+* `git restore --staged <file>` - reverts to staged without overwriting changes. Use `.` for all files
