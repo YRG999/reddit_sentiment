@@ -4,3 +4,5 @@ _notes/
 venv/
 .env
 summarizer
+output/
+test_ollama/
