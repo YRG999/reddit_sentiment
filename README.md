@@ -1,6 +1,6 @@
-# Reddit sentiment
+# Reddit sentiment and summarize
 
-Perform simple sentiment analysis on subreddit posts.
+Perform simple sentiment analysis on subreddit posts. And summarize Reddit posts and comments.
 
 ## Set up env
 
@@ -46,3 +46,7 @@ $ pip uninstall -y -r <(pip freeze)
 * [how-can-i-unstage-my-files-again-after-making-a-local-commit](https://stackoverflow.com/questions/6682740/how-can-i-unstage-my-files-again-after-making-a-local-commit)
 * `git reset --soft HEAD~1` - reverts back to commit
 * `git restore --staged <file>` - reverts to staged without overwriting changes. Use `.` for all files
+
+## Reddit summarizer
+
+* See [Reddit summarizer readme](README-summarize.md)

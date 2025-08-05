@@ -1,22 +1,32 @@
 from summarize_claude_openai import RedditSummarizer, save_summary_to_file
 
-def main():
-    summarizer = RedditSummarizer()
-    subreddit = input("Enter subreddit name: ").strip()
+def get_positive_int(prompt):
     while True:
         try:
-            hours = int(input("Enter number of hours to analyze: "))
-            if hours > 0:
-                break
-            print("Enter a positive number of hours.")
+            value = int(input(prompt))
+            if value > 0:
+                return value
+            print("Enter a positive number.")
         except ValueError:
             print("Please enter a valid number.")
-    topics_input = input("Enter topics to focus on (comma-separated, or press Enter for no filter): ")
-    topics = [topic.strip().lower() for topic in topics_input.split(',')] if topics_input.strip() else []
 
-    clean_text = True
-    save_to_file = True
-    save_raw_data = True
+def main():
+    """
+    This function orchestrates the Reddit summarization process using the RedditSummarizer class and Ollama for summarization.
+
+    It takes user input for the subreddit to analyze, the number of hours to analyze, and optional topics to focus on.
+    It retrieves recent content from the specified subreddit, filters it based on the optional topics, summarizes the content using Ollama,
+    and saves the summary and raw data (optionally) to files.  Error handling is included for invalid user input and processing errors.
+    """
+    summarizer = RedditSummarizer()
+    subreddit = input("Enter subreddit name: ").strip()
+    hours = get_positive_int("Enter number of hours to analyze: ")
+    topics_input = input("Enter topics to focus on (comma-separated, or press Enter for no filter): ")
+    topics = [t.strip().lower() for t in topics_input.split(',')] if topics_input.strip() else []
+
+    clean_text = True  # Flag to control text cleaning (always True in this version)
+    save_to_file = True # Flag to control whether to save to file (always True)
+    save_raw_data = True # Flag to control whether to save raw data (always True)
 
     print(f"\nAnalyzing r/{subreddit} with Ollama summarization...")
     try:
