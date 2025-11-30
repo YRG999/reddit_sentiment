@@ -371,7 +371,23 @@ def main():
                 continue
             
             print("\nGenerating summary...")
-            summary, references = summarizer.summarize_content(content, subreddit)
+            result = summarizer.summarize_content(content, subreddit)
+            if result is None:
+                print("Error: summarize_content returned no result; skipping this subreddit.")
+                continue
+
+            # Expect a tuple (summary_text, references). Be robust to other return shapes.
+            try:
+                summary, references = result
+            except Exception:
+                if isinstance(result, str):
+                    # If a string was returned, treat it as the summary with no references.
+                    summary = result
+                    references = []
+                else:
+                    print("Error: Unexpected result from summarize_content; skipping this subreddit.")
+                    continue
+
             formatted_summary = summarizer.format_summary_with_footnotes(summary, references)
             
             print("\nSUMMARY:")

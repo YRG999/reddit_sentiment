@@ -6,3 +6,4 @@ venv/
 summarizer
 output/
 test_ollama/
+reddit_streamer/src/logs/

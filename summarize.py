@@ -1,13 +1,10 @@
-# summarizereddit9.py
-# v1 - Get posts & comments for subreddits & use OpenAI to summarize.
-# v2 - update summarize_content to uses latest API pattern.
-# v3 - Annotate summary w/ footnotes for links that go to the URLs for the actual post or comment.
-# v4 - Add content limits to reduce tokens to handle rate limits if hit.
-# v5 - Add text cleaning to reduce content token size.
-# v6 - Add more aggressive content reduction.
-# v7 - Add functions to focus on specific topics within the subreddit and save summaries to a file.
-# v8 - Update save files to save results of questions. Ask user if they want to store the raw content.
-# v9 - Remove duplicate "Summary generated" from output file
+# summarize.py
+# Fetches recent posts/comments from one or more subreddits and generates an OpenAI summary.
+# Usage:
+#   1. Set Reddit and OpenAI API keys in a .env file.
+#   2. Run: python summarize.py
+#   3. Follow prompts to choose subreddits, time window, topic filters, and save options.
+#   4. Summaries are printed and optionally saved as summary_*.txt (and raw_data_*.json).
 
 import praw
 import os
@@ -34,8 +31,11 @@ class RedditSummarizer:
         self.client = OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"),
         )
+        # Central place to configure the model
+        self.model_name = "gpt-5-nano-2025-08-07"
+
         self.eastern_tz = pytz.timezone('America/New_York')
-        self.tokenizer = tiktoken.encoding_for_model("gpt-4")
+        self.tokenizer = tiktoken.encoding_for_model(self.model_name)
         self.MAX_TOKENS = 8000
         
         # Download required NLTK data
@@ -215,7 +215,7 @@ Here's the content to summarize:\n\n"""
                             "content": summary_prompt
                         }
                     ],
-                    model="gpt-4",
+                    model=self.model_name,
                 )
                 return chat_completion.choices[0].message.content, references
                 
@@ -370,7 +370,7 @@ def main():
                 continue
             
             print("\nGenerating summary...")
-            summary, references = summarizer.summarize_content(content, subreddit)
+            summary, references = summarizer.summarize_content(content, subreddit)  # type: ignore
             formatted_summary = summarizer.format_summary_with_footnotes(summary, references)
             
             print("\nSUMMARY:")
