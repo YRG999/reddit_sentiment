@@ -11,9 +11,7 @@
 # v9b - name change to summarize_openai.py
 
 import praw
-import os
 from openai import OpenAI
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import pytz
 import time
@@ -24,16 +22,17 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
+from credentials import get_secret
+
 class RedditSummarizer:
     def __init__(self):
-        self._load_credentials()
         self.reddit = praw.Reddit(
-            client_id=os.getenv('REDDIT_CLIENT_ID'),
-            client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-            user_agent=os.getenv('REDDIT_USER_AGENT')
+            client_id=get_secret('REDDIT_CLIENT_ID'),
+            client_secret=get_secret('REDDIT_CLIENT_SECRET'),
+            user_agent=get_secret('REDDIT_USER_AGENT')
         )
         self.client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"),
+            api_key=get_secret("OPENAI_API_KEY"),
         )
         self.eastern_tz = pytz.timezone('America/New_York')
         self.tokenizer = tiktoken.encoding_for_model("gpt-4")
@@ -47,10 +46,6 @@ class RedditSummarizer:
             print("Downloading required NLTK data...")
             nltk.download('punkt')
             nltk.download('stopwords')
-
-    def _load_credentials(self):
-        """Load environment variables from .env file"""
-        load_dotenv()
 
     def clean_text(self, text):
         """

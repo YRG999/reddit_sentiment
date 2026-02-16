@@ -1,49 +1,82 @@
-# README 
+# Reddit Sentiment
 
-This repository contains a collection of small tools for working with Reddit data:
+A collection of standalone Python tools for fetching, summarizing, and analyzing Reddit data using OpenAI, Claude, or Ollama.
 
-- Fetch and summarize recent posts/comments with OpenAI, Claude, or Ollama.
-- Run follow‑up questions against saved summaries.
-- Perform simple sentiment analysis on posts and comments.
-- Stream posts and comments in real time.
-- Fetch and log posts or comments from subreddits.
+## Quick Start
 
-The code is organized as standalone scripts so you can run only what you need.
+### 1. Install and configure
+
+```bash
+python3 -m venv venv && . venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # then fill in your credentials (see Configuration)
+```
+
+### 2. Summarize a subreddit
+
+```bash
+python subreddit_summary.py technology --hours 24 --api openai
+```
+
+This fetches recent posts and comments from r/technology, sends them to OpenAI for summarization, prints the result, and saves it to `output/technology/`.
+
+You can also omit flags and answer interactively:
+
+```bash
+python subreddit_summary.py technology
+```
+
+### 3. Ask follow-up questions
+
+```bash
+python followup.py
+```
+
+Select a previously saved summary or raw data file and ask questions about it.
 
 ---
 
 ## Table of Contents
 
-- [Environment Setup](#environment-setup)
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Tools](#tools)
+  - [`subreddit_summary.py` -- CLI summarizer (recommended)](#subreddit_summarypy----cli-summarizer-recommended)
+  - [`summarize.py` -- OpenAI summarizer](#summarizepy----openai-summarizer)
+  - [`followup.py` -- follow-up Q&A](#followuppy----follow-up-qa)
+  - [`summarize_claude_openai.py` -- multi-API summarizer](#summarize_claude_openaipy----multi-api-summarizer)
+  - [`summarize_with_ollama.py` -- Ollama-only summarizer](#summarize_with_ollamapy----ollama-only-summarizer)
+  - [`summarize_openai.py` -- legacy OpenAI summarizer](#summarize_openaipy----legacy-openai-summarizer)
+  - [`clean_text.py` -- text cleaning helper](#clean_textpy----text-cleaning-helper)
+  - [`sentiment.py` -- sentiment analysis](#sentimentpy----sentiment-analysis)
+  - [`comments.py` -- comment/search utility](#commentspy----commentsearch-utility)
+  - [`posts.py` -- post scraper](#postspy----post-scraper)
+  - [`reddit_streamer` -- real-time streamer](#reddit_streamer----real-time-streamer)
 - [Project Layout](#project-layout)
-- [Quick Start (Summaries + Follow‑up)](#quick-start-summaries--follow-up)
-  - [1. Summarize recent Reddit activity (`summarize.py`)](#1-summarize-recent-reddit-activity-summarizepy)
-  - [2. Ask follow‑up questions (`followup.py`)](#2-ask-follow-up-questions-followuppy)
-- [Summarization Scripts](#summarization-scripts)
-  - [`summarize.py` (OpenAI, main entry)](#summarizepy-openai-main-entry)
-  - [`followup.py` (follow‑up Q&A)](#followuppy-follow-up-qa)
-  - [`summarize_claude_openai.py` (OpenAI / Claude / Ollama)](#summarize_claude_openaipy-openai--claude--ollama)
-  - [`summarize_with_ollama.py` (Ollama only)](#summarize_with_ollamapy-ollama-only)
-  - [`summarize_openai.py` (older OpenAI-only version)](#summarize_openaipy-older-openai-only-version)
-  - [`clean_text.py` (text cleaning helper)](#clean_textpy-text-cleaning-helper)
-- [Other Tools](#other-tools)
-  - [`sentiment.py` (sentiment analysis)](#sentimentpy-sentiment-analysis)
-  - [`comments.py` (comment/search utility + menu UI)](#commentspy-commentsearch-utility--menu-ui)
-  - [`posts.py` (post scraper)](#postspy-post-scraper)
-  - [`reddit_streamer/src/streamer.py` (streamer)](#reddit_streamersrcstreamerpy-streamer)
-- [Notes](#notes)
 
 ---
 
-## Environment Setup
+## Prerequisites
 
-Follow these steps to set up your environment.
+- **Python 3.10+**
+- **Reddit API credentials** -- create an app at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) to get a client ID and secret.
+- **At least one LLM provider** (for summarization):
+  - [OpenAI API key](https://platform.openai.com/api-keys)
+  - [Anthropic API key](https://console.anthropic.com/) (optional, for Claude)
+  - [Ollama](https://ollama.com/) running locally (optional)
 
-### 1. Create and activate a virtual environment (recommended)
+---
+
+## Installation
+
+Create and activate a virtual environment, then install dependencies:
 
 ```bash
 python3 -m venv venv
 . venv/bin/activate
+pip install -r requirements.txt
 ```
 
 On Windows:
@@ -51,206 +84,110 @@ On Windows:
 ```bash
 python -m venv venv
 venv\Scripts\activate
-```
-
-### 2. Install dependencies
-
-From the repo root:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Or upgrade to the latest versions:
+---
+
+## Configuration
+
+Copy the example and fill in your credentials:
 
 ```bash
-pip install -U -r requirements.txt
+cp .env.example .env
 ```
 
-### 3. Create a `.env` file
-
-Copy `.env.example` (if present) or create `.env` in the project root and set:
+### Standard `.env`
 
 ```env
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
-REDDIT_USER_AGENT=your_user_agent_string
+REDDIT_USER_AGENT=script:myapp:v1.0 (by /u/yourusername)
 
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key   # optional, for Claude
-OLLAMA_URL=http://localhost:11434/api/chat # optional, for Ollama
-OLLAMA_MODEL=gemma3:12b                    # optional, for Ollama
+OLLAMA_URL=http://localhost:11434/api/chat  # optional, for Ollama
+OLLAMA_MODEL=gemma3:12b                     # optional, for Ollama
 ```
 
-Make sure Reddit API credentials are valid and the OpenAI key has access to the model configured in the code.
+### 1Password integration
+
+If you use [1Password CLI](https://developer.1password.com/docs/cli/), you can use `op://` secret references in `.env`:
+
+```env
+REDDIT_CLIENT_ID=op://Private/REDDIT_CLIENT_ID/credential
+REDDIT_CLIENT_SECRET=op://Private/REDDIT_CLIENT_SECRET/credential
+REDDIT_USER_AGENT=op://Private/REDDIT_USER_AGENT/credential
+OPENAI_API_KEY=op://Private/OPENAI_API_KEY/credential
+```
+
+All scripts use `credentials.py` which automatically detects `op://` references and resolves them via `op read`. Make sure the `op` CLI is installed and you are signed in.
 
 ---
 
-## Project Layout
+## Tools
 
-Key files and folders:
+### `subreddit_summary.py` -- CLI summarizer (recommended)
 
-```text
-.
-├── summarize.py                 # Main OpenAI-based summarizer (Quick Start focus)
-├── followup.py                  # Follow-up Q&A on saved summaries (Quick Start focus)
-├── summarize_claude_openai.py   # Summarizer using OpenAI, Claude, or Ollama
-├── summarize_with_ollama.py     # Summarizer using Ollama only
-├── summarize_openai.py          # Older OpenAI-only summarizer
-├── clean_text.py                # Utility to clean arbitrary text using RedditSummarizer.clean_text
-├── sentiment.py                 # Sentiment analysis on posts/comments
-├── comments.py                  # Menu-driven Reddit comment/search utility
-├── posts.py                     # Basic post scraper (time-windowed)
-├── reddit_streamer/
-│   ├── src/
-│   │   └── streamer.py          # Streams mixed posts/comments with logging
-│   └── README.md                # Streamer-specific documentation
-├── README-summarize.md          # Extra details for Ollama summarizer
-├── README_old.md                # Original setup notes
-└── requirements.txt
+The fastest way to summarize a subreddit. Uses `click` for CLI argument handling with interactive fallbacks.
+
+```bash
+# Fully specified
+python subreddit_summary.py technology --hours 24 --api openai
+
+# Prompts for hours and API choice
+python subreddit_summary.py technology
+
+# With topic filtering
+python subreddit_summary.py technology --hours 12 --api claude --topics "AI,robots"
+
+# Terminal only (skip file output)
+python subreddit_summary.py singularity --hours 6 --api ollama --no-save
 ```
+
+| Option             | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `SUBREDDIT`        | Required positional argument                         |
+| `--hours` / `-H`   | Hours to look back (prompts if omitted)              |
+| `--api` / `-a`     | `openai`, `claude`, or `ollama` (prompts if omitted) |
+| `--topics` / `-t`  | Comma-separated topic filter                         |
+| `--no-clean`       | Skip NLTK text cleaning                              |
+| `--no-save`        | Skip saving output files                             |
+| `--no-raw`         | Skip saving raw data JSON                            |
+
+Output is saved to `output/<subreddit>/` as `summary_<subreddit>_<timestamp>.txt` and `raw_data_<subreddit>_<timestamp>.json`.
 
 ---
 
-## Quick Start (Summaries + Follow‑up)
+### `summarize.py` -- OpenAI summarizer
 
-The main workflow uses:
-
-- `summarize.py` — generate summaries and optionally save raw data.
-- `followup.py` — load a saved summary/raw file and ask follow‑up questions.
-
-### 1. Summarize recent Reddit activity (`summarize.py`)
-
-This script:
-
-- Pulls recent posts and comments from one or more subreddits.
-- Optionally cleans text and filters by topics.
-- Sends the content to **OpenAI** for summarization.
-- Prints a summary with numbered footnote references.
-- Optionally saves:
-  - `summary_<subreddit>_<timestamp>.txt`
-  - `raw_data_<subreddit>_<timestamp>.json`
-
-Run:
+Interactive summarizer using OpenAI. Supports multiple subreddits, topic filtering, text cleaning, and file saving.
 
 ```bash
 python summarize.py
 ```
 
-You’ll be prompted for:
+Prompts for subreddit name(s), hours, topics, cleaning, and save options.
 
-- Subreddit name(s), comma‑separated (e.g., `python, learnpython`)
-- Number of hours to analyze (e.g., `24`)
-- Topics to filter on (optional, comma‑separated; leave blank for no filter)
-- Whether to clean text content
-- Whether to save summaries and raw data
+---
 
-Outputs (when saving is enabled) are written to the current directory.
+### `followup.py` -- follow-up Q&A
 
-### 2. Ask follow‑up questions (`followup.py`)
-
-This script:
-
-- Reuses the same **OpenAI** client and model configuration as `summarize.py`.
-- Loads either a `summary_*.txt` or `raw_data_*.json` file.
-- Builds a prompt that includes the previous summary and/or truncated raw content.
-- Lets you ask arbitrary follow‑up questions.
-- Saves each Q&A as `followup_<subreddit>_<timestamp>.txt`.
-
-Run:
+Load a previously saved summary or raw data file and ask follow-up questions using the same OpenAI model.
 
 ```bash
 python followup.py
 ```
 
-Workflow:
-
-1. Select one of the `summary_*.txt` or `raw_data_*.json` files when prompted.
-2. Ask follow‑up questions at the prompt:
-   - `Follow-up question (blank line to exit):`
-3. Press Enter on a blank line to exit.
-
-Each follow‑up is logged to a new `followup_*.txt` file containing:
-
-- Basic metadata (subreddit, source session file, timestamp)
-- The question text
-- The model’s answer
+1. Select a `summary_*.txt` or `raw_data_*.json` file when prompted.
+2. Ask questions at the prompt. Press Enter on a blank line to exit.
+3. Each Q&A session is saved to `followup_*.txt`.
 
 ---
 
-## Summarization Scripts
+### `summarize_claude_openai.py` -- multi-API summarizer
 
-### `summarize.py` (OpenAI, main entry)
-
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/summarize.py
-```
-
-Features:
-
-- Fetches recent posts and comments for one or more subreddits.
-- Optional text cleaning (NLTK `punkt` + `stopwords`).
-- Optional topic filtering (basic substring match, case‑insensitive).
-- Summarization via OpenAI Chat Completions using a single, central `model_name`.
-- Automatic token counting and content truncation on size/rate-limit errors.
-- Footnote-style references `[1]`, `[2]`, … that link back to Reddit URLs.
-- File saving via `save_summary_to_file`.
-
-How to run:
-
-```bash
-python summarize.py
-```
-
-### `followup.py` (follow‑up Q&A)
-
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/followup.py
-```
-
-Features:
-
-- Uses `RedditSummarizer` from `summarize.py` to share:
-  - OpenAI client configuration
-  - Central chat model name.
-- Lets you pick an existing `summary_*.txt` or `raw_data_*.json`.
-- Builds a follow‑up prompt combining:
-  - The previous summary (if available).
-  - A truncated view of raw posts/comments (if available).
-- Sends the prompt to the same model used in `summarize.py`.
-- Saves each Q&A to a `followup_*.txt` file.
-
-How to run:
-
-```bash
-python followup.py
-```
-
----
-
-### `summarize_claude_openai.py` (OpenAI / Claude / Ollama)
-
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/summarize_claude_openai.py
-```
-
-Features:
-
-- Unified `RedditSummarizer` that can use:
-  - OpenAI (`summarize_with_openai`)
-  - Claude (`summarize_with_claude`)
-  - Ollama (`summarize_with_ollama`)
-- Topic filtering and reference footnotes.
-- Similar `save_summary_to_file` behavior.
-- Interactive `main()` that asks you which API to use (1=OpenAI, 2=Claude, 3=Ollama).
-
-Run:
+Interactive summarizer that lets you choose between OpenAI, Claude, and Ollama at runtime. This is also the shared library that other tools import `RedditSummarizer` from.
 
 ```bash
 python summarize_claude_openai.py
@@ -258,48 +195,21 @@ python summarize_claude_openai.py
 
 ---
 
-### `summarize_with_ollama.py` (Ollama only)
+### `summarize_with_ollama.py` -- Ollama-only summarizer
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/summarize_with_ollama.py
-```
-
-Features:
-
-- Uses `RedditSummarizer` from `summarize_claude_openai.py`.
-- Fetches recent content from a single subreddit.
-- Optional topic filtering.
-- Summarizes content using Ollama.
-- Always saves:
-  - Summary text
-  - Raw data JSON
-
-Usage (see also `README-summarize.md`):
+Simplified wrapper for Ollama summarization. Requires Ollama running locally with the configured model (default: `gemma3:12b`).
 
 ```bash
 python summarize_with_ollama.py
 ```
 
-Make sure:
-
-- Ollama is installed and running.
-- The configured Ollama model (e.g., `gemma3:12b`) is available.
+See also `README-summarize.md` for Ollama-specific setup details.
 
 ---
 
-### `summarize_openai.py` (older OpenAI-only version)
+### `summarize_openai.py` -- legacy OpenAI summarizer
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/summarize_openai.py
-```
-
-This is an older evolution of the OpenAI-only summarizer (versions v1–v9). It contains similar logic to `summarize.py` (text cleaning, topic filtering, footnotes, saving to files), but `summarize.py` is the preferred and more up-to-date version.
-
-Run:
+Older evolution of the OpenAI summarizer (v1-v9). Superseded by `summarize.py`.
 
 ```bash
 python summarize_openai.py
@@ -307,85 +217,31 @@ python summarize_openai.py
 
 ---
 
-### `clean_text.py` (text cleaning helper)
+### `clean_text.py` -- text cleaning helper
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/clean_text.py
-```
-
-Utility script that:
-
-- Instantiates `RedditSummarizer` from `summarize_claude_openai.py`.
-- Uses its `clean_text` method to clean an arbitrary text file.
-- Writes the cleaned output to `<original>_cleaned.ext`.
-
-Run:
+Cleans an arbitrary text file using NLTK tokenization and stopword removal. Outputs to `<original>_cleaned.<ext>`.
 
 ```bash
 python clean_text.py
 ```
 
-You’ll be prompted for the path to a text file.
-
 ---
 
-## Other Tools
+### `sentiment.py` -- sentiment analysis
 
-### `sentiment.py` (sentiment analysis)
-
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/sentiment.py
-```
-
-Features:
-
-- Uses `TextBlob` for sentiment polarity.
-- Interprets sentiment into buckets:
-  - `Positive++`, `Positive+`, `Positive`, `Neutral`, `Negative`, `Negative-`, `Negative--`.
-- Logs detailed results for posts and comments to:
-  - `reddit_sentiment_analysis_<subreddit>_<sort>_<timestamp>.csv`
-- Logs per‑post comment sentiment summaries to:
-  - `reddit_sentiment_summaries_<subreddit>_<sort>_<timestamp>.csv`
-- Lets you choose:
-  - Subreddit
-  - Number of posts
-  - Sort method (`hot` or `new`)
-
-Run:
+Analyzes sentiment polarity of posts and comments using TextBlob. Outputs two CSV files: detailed records and per-post summaries with sentiment buckets (Positive++, Positive+, Positive, Neutral, Negative, Negative-, Negative--).
 
 ```bash
 python sentiment.py
 ```
 
+Prompts for subreddit, number of posts, and sort method (`hot` or `new`).
+
 ---
 
-### `comments.py` (comment/search utility + menu UI)
+### `comments.py` -- comment/search utility
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/comments.py
-```
-
-Features:
-
-- `RedditAPI` class with methods to:
-  - Get top posts.
-  - Search posts across Reddit or within a subreddit.
-  - Get user karma.
-  - Stream comments.
-  - Search comments for specific words.
-  - Stream formatted comments with rate limiting.
-- `UserInterface` class:
-  - Menu-driven CLI (choices 1–10).
-  - Logs all actions and data to a timestamped log file in the working directory.
-  - Consistent timestamps in Eastern Time.
-
-Run and use the menu:
+Menu-driven CLI with 10 options for browsing Reddit: top posts, search, user karma, comment streaming (with rate limiting), and comment search. All actions are logged to a timestamped file.
 
 ```bash
 python comments.py
@@ -393,27 +249,9 @@ python comments.py
 
 ---
 
-### `posts.py` (post scraper)
+### `posts.py` -- post scraper
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/posts.py
-```
-
-Features:
-
-- `RedditScraper` class:
-  - Fetches recent posts from a subreddit.
-  - Optional inclusion of comments when determining recency.
-  - Filters posts by how recent the post/comment activity is (in hours).
-  - Writes output to a timestamped `.txt` file.
-- Interactively asks:
-  - Subreddit
-  - Hours back
-  - Whether to include comments.
-
-Run:
+Fetches recent posts from a subreddit within a time window. Optionally filters by recent comment activity. Outputs `.txt` and `.csv` files.
 
 ```bash
 python posts.py
@@ -421,27 +259,9 @@ python posts.py
 
 ---
 
-### `reddit_streamer/src/streamer.py` (streamer)
+### `reddit_streamer` -- real-time streamer
 
-Located at:
-
-```text
-/Users/dark/Repos/reddit_sentiment/reddit_streamer/src/streamer.py
-```
-
-See the dedicated streamer README:
-
-```text
-/Users/dark/Repos/reddit_sentiment/reddit_streamer/README.md
-```
-
-Features:
-
-- Streams recent posts and comments from a subreddit.
-- Mixes and sorts by time, displays one item per second.
-- Logs all streamed items to a JSON file under `reddit_streamer/src/logs`.
-
-Typical usage:
+Streams posts and comments from a subreddit in real time, displaying one item per second. Logs to JSON files under `reddit_streamer/src/logs/`.
 
 ```bash
 cd reddit_streamer
@@ -449,10 +269,32 @@ pip install -r requirements.txt
 python src/streamer.py
 ```
 
+See `reddit_streamer/README.md` for details.
+
 ---
 
-## Notes
+## Project Layout
 
-- All summarization and follow‑up scripts expect valid Reddit API credentials and, where applicable, valid OpenAI / Anthropic / Ollama configuration.
-- Topic filtering in summarizers is simple substring matching; for more advanced filtering, you can extend the `filter_content_by_topics` methods.
-- The repository is designed modularly so you can swap in other models or APIs with minimal changes (e.g., updating a single `model_name` in `RedditSummarizer`).
+```text
+.
+├── subreddit_summary.py            # CLI summarizer (recommended entry point)
+├── summarize.py                    # OpenAI summarizer
+├── followup.py                     # Follow-up Q&A on saved summaries
+├── summarize_claude_openai.py      # Multi-API summarizer (shared RedditSummarizer class)
+├── summarize_with_ollama.py        # Ollama-only summarizer
+├── summarize_openai.py             # Legacy OpenAI summarizer
+├── credentials.py                  # Credential loader with 1Password op:// support
+├── clean_text.py                   # Text cleaning utility
+├── sentiment.py                    # Sentiment analysis
+├── comments.py                     # Comment/search menu UI
+├── posts.py                        # Post scraper
+├── reddit_streamer/
+│   ├── src/streamer.py             # Real-time post/comment streamer
+│   └── README.md
+├── output/                         # Generated summaries and data (gitignored)
+├── .env.example                    # Environment variable template
+├── requirements.txt                # Python dependencies
+├── CHANGELOG.md                    # Version history
+├── README-summarize.md             # Ollama summarizer guide
+└── README_old.md                   # Original setup notes
+```

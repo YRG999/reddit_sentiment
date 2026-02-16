@@ -1,17 +1,16 @@
 # streamer2.py
 
 import praw
-import os
 import json
 import time
 import re
+import sys
 from datetime import datetime
-from dotenv import load_dotenv
 import pathlib
 
-# Load .env from two levels above
-env_path = pathlib.Path(__file__).parents[2] / '.env'
-load_dotenv(dotenv_path=env_path)
+# Add project root to path so credentials module can be imported
+sys.path.insert(0, str(pathlib.Path(__file__).parents[2]))
+from credentials import get_secret
 
 def sanitize_filename(name):
     # Only allow alphanumeric, dash, and underscore
@@ -32,9 +31,9 @@ def main():
 
     # Initialize Reddit client
     reddit = praw.Reddit(
-        client_id=os.getenv('REDDIT_CLIENT_ID'),
-        client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-        user_agent=os.getenv('REDDIT_USER_AGENT')
+        client_id=get_secret('REDDIT_CLIENT_ID'),
+        client_secret=get_secret('REDDIT_CLIENT_SECRET'),
+        user_agent=get_secret('REDDIT_USER_AGENT')
     )
 
     # Prepare to log data

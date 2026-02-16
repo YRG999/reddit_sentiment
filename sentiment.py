@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import csv
-import os
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -19,7 +18,8 @@ from typing import Any, Dict, Iterable, Literal, Sequence
 import praw
 from praw.models import Submission, Comment, Subreddit
 from textblob import TextBlob
-from dotenv import load_dotenv
+
+from credentials import get_secret
 
 
 @dataclass(frozen=True)
@@ -58,11 +58,10 @@ class CommentSummary:
 
 
 def get_credentials() -> Dict[str, str]:
-    load_dotenv()
     return {
-        "client_id": os.getenv("REDDIT_CLIENT_ID", ""),
-        "client_secret": os.getenv("REDDIT_CLIENT_SECRET", ""),
-        "user_agent": os.getenv("REDDIT_USER_AGENT", ""),
+        "client_id": get_secret("REDDIT_CLIENT_ID") or "",
+        "client_secret": get_secret("REDDIT_CLIENT_SECRET") or "",
+        "user_agent": get_secret("REDDIT_USER_AGENT") or "",
     }
 
 

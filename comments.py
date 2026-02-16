@@ -15,10 +15,10 @@
 
 import praw
 import time
-import os
-from dotenv import load_dotenv
 from datetime import datetime
 import pytz
+
+from credentials import get_secret
 
 class TimeConverter:
     """
@@ -61,11 +61,10 @@ class RedditAPI:
 
     @staticmethod
     def get_credentials():
-        load_dotenv()
         return {
-            'client_id': os.getenv('REDDIT_CLIENT_ID'),
-            'client_secret': os.getenv('REDDIT_CLIENT_SECRET'),
-            'user_agent': os.getenv('REDDIT_USER_AGENT')
+            'client_id': get_secret('REDDIT_CLIENT_ID'),
+            'client_secret': get_secret('REDDIT_CLIENT_SECRET'),
+            'user_agent': get_secret('REDDIT_USER_AGENT')
         }
 
     def get_top_posts(self, subreddit_name, limit=10):

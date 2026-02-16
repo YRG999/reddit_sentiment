@@ -1,0 +1,112 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-02-16
+
+### Added
+
+- `subreddit_summary.py` CLI tool using `click` with positional subreddit argument, `--hours`, `--api`, `--topics` flags, and interactive fallbacks, inspired by [Reddit (read only - no auth)](https://clawhub.ai/buksan1950/reddit-readonly).
+- `credentials.py` module with `get_secret()` helper that resolves 1Password `op://` references via the `op` CLI.
+- `CHANGELOG.md` following Keep a Changelog format.
+
+### Changed
+
+- Rewrote `README.md`: added Quick Start guide for `subreddit_summary.py`, Prerequisites section, 1Password configuration docs, and consolidated tool reference with removed absolute paths.
+- All credential loading across the project now uses `get_secret()` from `credentials.py` instead of `os.getenv()` with `load_dotenv()`, adding 1Password support to `summarize_claude_openai.py`, `summarize.py`, `summarize_openai.py`, `comments.py`, `posts.py`, `sentiment.py`, and `reddit_streamer/src/streamer.py`.
+- `.env.example` updated to use 1Password `op://` reference format.
+
+### Fixed
+
+- "Olloma" typo renamed to "Ollama" in method name, error messages, and caller sites across `summarize_claude_openai.py` and `subreddit_summary.py`.
+
+## [0.10.0] - 2025-12-09
+
+### Added
+
+- `followup.py` for follow-up Q&A on saved summaries using OpenAI.
+
+### Changed
+
+- Comprehensive README rewrite with full documentation for every tool.
+- Optimized `posts.py`, `sentiment.py`, `summarize.py`, `summarize_claude_openai.py`, and `summarize_openai.py`.
+- Removed unused import from `summarize.py`.
+
+## [0.9.0] - 2025-08-04
+
+### Added
+
+- `README-summarize.md` with Ollama-specific guide.
+
+### Changed
+
+- Optimized `summarize_claude_openai.py` and `summarize_with_ollama.py`.
+
+## [0.8.0] - 2025-07-14
+
+### Added
+
+- Ollama as third LLM backend in `summarize_claude_openai.py`.
+- `summarize_with_ollama.py` standalone Ollama summarizer.
+- `clean_text.py` text cleaning utility.
+- `reddit_streamer/` real-time comment streaming tool with its own README and requirements.
+
+## [0.7.0] - 2025-03-19
+
+### Added
+
+- `summarize_claude_openai.py` with multi-API support (OpenAI and Claude).
+- `summarize_openai.py` standalone OpenAI summarizer.
+
+## [0.6.0] - 2025-01-21
+
+### Added
+
+- `summarize.py` for summarizing Reddit posts and comments using OpenAI GPT.
+
+### Changed
+
+- Updated `comments.py` with expanded menu-driven CLI.
+- Updated `requirements.txt` with summarization dependencies (`openai`, `tiktoken`, `nltk`).
+
+## [0.5.0] - 2025-01-04
+
+### Changed
+
+- Renamed `reddit_comments.py` to `comments.py`.
+- Renamed `reddit_posts.py` to `posts.py`.
+- Renamed `reddit_sentiment.py` to `sentiment.py`.
+
+## [0.4.0] - 2024-09-06
+
+### Added
+
+- `comments.py` (originally `reddit_comments.py`) with menu-driven CLI for streaming and searching Reddit comments.
+
+## [0.3.0] - 2024-08-03
+
+### Added
+
+- `posts.py` (originally `reddit_posts.py`) for scraping posts within a time window.
+- `.env.example` with Reddit API credential template.
+
+## [0.2.0] - 2024-07-07
+
+### Added
+
+- Sort posts by "new" or "hot" in sentiment analysis.
+
+### Changed
+
+- Optimized sentiment analysis code.
+
+## [0.1.0] - 2024-07-07
+
+### Added
+
+- Initial release with `sentiment.py` (originally `reddit_sentiment.py`) for Reddit sentiment analysis using TextBlob.
+- `.gitignore` and `requirements.txt`.
+- `README.md` with setup instructions.

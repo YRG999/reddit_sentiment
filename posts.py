@@ -10,27 +10,26 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
-import os
 from pathlib import Path
 from typing import Optional, TextIO
 from zoneinfo import ZoneInfo
 
 import praw
-from dotenv import load_dotenv
 from praw.models import Comment, MoreComments, Submission, Subreddit
 from praw.exceptions import PRAWException
 from prawcore.exceptions import PrawcoreException
+
+from credentials import get_secret
 
 EASTERN_TZ = ZoneInfo("America/New_York")
 
 
 class RedditScraper:
     def __init__(self) -> None:
-        load_dotenv()
         self.reddit: praw.Reddit = praw.Reddit(
-            client_id=os.getenv("REDDIT_CLIENT_ID"),
-            client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-            user_agent=os.getenv("REDDIT_USER_AGENT"),
+            client_id=get_secret("REDDIT_CLIENT_ID"),
+            client_secret=get_secret("REDDIT_CLIENT_SECRET"),
+            user_agent=get_secret("REDDIT_USER_AGENT"),
         )
 
     def get_subreddit(self, subreddit_name: str) -> Optional[Subreddit]:
