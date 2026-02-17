@@ -1,9 +1,11 @@
 .DS_Store
+.env
+.vscode/
 __pycache__/
 _notes/
-venv/
-.env
-summarizer
 output/
-test_ollama/
 reddit_streamer/src/logs/
+summarizer
+logs/
+test_ollama/
+venv/

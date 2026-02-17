@@ -6,6 +6,8 @@
 #   3. Summary prints to terminal and saves to output/<subreddit>/.
 
 import json
+import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -15,13 +17,36 @@ import pytz
 
 from summarize_claude_openai import RedditSummarizer
 
+logger = logging.getLogger(__name__)
+
+
+MAX_HOURS_DEFAULT = 120
+
+
+def validate_subreddit(subreddit: str) -> str:
+    if not re.match(r"^[A-Za-z0-9_]+$", subreddit):
+        raise click.BadParameter(
+            "Subreddit name must contain only letters, numbers, and underscores."
+        )
+    return subreddit
+
+
+def confirm_hours(value: int) -> int:
+    if value > MAX_HOURS_DEFAULT:
+        confirm = input(
+            f"{value} hours exceeds {MAX_HOURS_DEFAULT}. Continue? (y/n): "
+        ).strip().lower()
+        if confirm != "y":
+            return prompt_for_hours()
+    return value
+
 
 def prompt_for_hours() -> int:
     while True:
         try:
             value = int(input("Enter number of hours to analyze: "))
             if value > 0:
-                return value
+                return confirm_hours(value)
             print("Enter a positive number.")
         except ValueError:
             print("Please enter a valid number.")
@@ -143,8 +168,9 @@ def run_summary(
 
         print("\n" + "=" * 50 + "\n")
 
-    except Exception as exc:
-        print(f"Error processing r/{subreddit}: {exc}")
+    except Exception:
+        logger.exception("Error processing r/%s", subreddit)
+        print(f"Error processing r/{subreddit}. Check logs for details.")
 
 
 @click.command()
@@ -162,8 +188,19 @@ def run_summary(
 @click.option("--no-save", is_flag=True, default=False, help="Skip saving output files.")
 @click.option("--no-raw", is_flag=True, default=False, help="Skip saving raw data JSON.")
 def main(subreddit, hours, api, topics, no_clean, no_save, no_raw):
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        filename=log_dir / "subreddit_summary.log",
+    )
+    validate_subreddit(subreddit)
+
     if hours is None:
         hours = prompt_for_hours()
+    else:
+        hours = confirm_hours(hours)
     if api is None:
         api = prompt_for_api()
 

@@ -169,7 +169,7 @@ python subreddit_summary.py singularity --hours 6 --api ollama --no-save
 | Option             | Description                                          |
 | ------------------ | ---------------------------------------------------- |
 | `SUBREDDIT`        | Required positional argument                         |
-| `--hours` / `-H`   | Hours to look back (prompts if omitted)              |
+| `--hours` / `-H`   | Hours to look back (prompts if omitted; confirms if >120) |
 | `--api` / `-a`     | `openai`, `claude`, or `ollama` (prompts if omitted) |
 | `--topics` / `-t`  | Comma-separated topic filter                         |
 | `--no-clean`       | Skip NLTK text cleaning                              |
@@ -315,6 +315,7 @@ See `reddit_streamer/README.md` for details.
 │   ├── src/streamer.py             # Real-time post/comment streamer
 │   └── README.md
 ├── output/                         # Generated summaries and data (gitignored)
+├── logs/                           # Application logs (gitignored)
 ├── .env.example                    # Environment variable template
 ├── requirements.txt                # Python dependencies
 ├── CHANGELOG.md                    # Version history
