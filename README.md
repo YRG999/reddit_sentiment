@@ -97,7 +97,30 @@ Copy the example and fill in your credentials:
 cp .env.example .env
 ```
 
+### Model configuration (`config.yaml`)
+
+LLM model names are configured in `config.yaml`:
+
+```yaml
+models:
+  openai: gpt-4o
+  claude: claude-sonnet-4-5-20250929
+  ollama: gemma3:12b
+
+openai:
+  service_tier: flex  # "flex" for batch-rate pricing, "auto" for default
+
+ollama:
+  url: http://localhost:11434/api/chat
+```
+
+Edit this file to change which models are used for summarization. Environment variables (`OPENAI_SUMMARY_MODEL`, `OLLAMA_MODEL`, `OLLAMA_URL`) override `config.yaml` when set.
+
+Setting `openai.service_tier` to `"flex"` enables [Flex processing](https://developers.openai.com/api/docs/guides/flex-processing), which prices tokens at batch API rates. Responses may be slower and can return 429 during high demand. Remove the key or set it to `"auto"` for default processing.
+
 ### Standard `.env`
+
+API keys and Reddit credentials go in `.env`:
 
 ```env
 REDDIT_CLIENT_ID=your_reddit_client_id
@@ -106,8 +129,6 @@ REDDIT_USER_AGENT=script:myapp:v1.0 (by /u/yourusername)
 
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key   # optional, for Claude
-OLLAMA_URL=http://localhost:11434/api/chat  # optional, for Ollama
-OLLAMA_MODEL=gemma3:12b                     # optional, for Ollama
 ```
 
 ### 1Password integration
@@ -283,6 +304,8 @@ See `reddit_streamer/README.md` for details.
 ├── summarize_claude_openai.py      # Multi-API summarizer (shared RedditSummarizer class)
 ├── summarize_with_ollama.py        # Ollama-only summarizer
 ├── summarize_openai.py             # Legacy OpenAI summarizer
+├── config.yaml                     # Model configuration (OpenAI, Claude, Ollama)
+├── config.py                       # Config loader with defaults
 ├── credentials.py                  # Credential loader with 1Password op:// support
 ├── clean_text.py                   # Text cleaning utility
 ├── sentiment.py                    # Sentiment analysis

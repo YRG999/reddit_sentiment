@@ -19,6 +19,7 @@ from nltk.tokenize import word_tokenize
 from openai import OpenAI
 from anthropic.types import TextBlockParam
 
+from config import load_config
 from credentials import get_secret
 
 def _make_text_block(text: str) -> TextBlockParam:
@@ -30,6 +31,9 @@ def _make_text_block(text: str) -> TextBlockParam:
 
 class RedditSummarizer:
     def __init__(self) -> None:
+        config = load_config()
+        models = config.get("models", {})
+
         self.reddit = praw.Reddit(
             client_id=get_secret("REDDIT_CLIENT_ID"),
             client_secret=get_secret("REDDIT_CLIENT_SECRET"),
@@ -38,15 +42,19 @@ class RedditSummarizer:
 
         openai_key = get_secret("OPENAI_API_KEY")
         self.openai_client: Optional[OpenAI] = OpenAI(api_key=openai_key) if openai_key else None
-        self.openai_model = get_secret("OPENAI_SUMMARY_MODEL", "gpt-4")
+        self.openai_model = get_secret("OPENAI_SUMMARY_MODEL") or models.get("openai", "gpt-4o")
+        openai_config = config.get("openai", {})
+        self.openai_service_tier = openai_config.get("service_tier")
 
         anthropic_key = get_secret("ANTHROPIC_API_KEY")
         self.claude_client: Optional[anthropic.Anthropic] = (
             anthropic.Anthropic(api_key=anthropic_key) if anthropic_key else None
         )
+        self.claude_model = models.get("claude", "claude-sonnet-4-5-20250929")
 
-        self.ollama_url = get_secret("OLLAMA_URL", "http://localhost:11434/api/chat")
-        self.ollama_model = get_secret("OLLAMA_MODEL", "gemma3:12b")
+        ollama_config = config.get("ollama", {})
+        self.ollama_url = get_secret("OLLAMA_URL") or ollama_config.get("url", "http://localhost:11434/api/chat")
+        self.ollama_model = get_secret("OLLAMA_MODEL") or models.get("ollama", "gemma3:12b")
 
         self.eastern_tz = pytz.timezone("America/New_York")
         self.MAX_TOKENS = 8000
@@ -207,7 +215,7 @@ class RedditSummarizer:
                 )
             )
             response = self.claude_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model=self.claude_model,
                 max_tokens=4096,
                 messages=[{"role": "user", "content": message_content}],
             )
@@ -250,9 +258,9 @@ class RedditSummarizer:
                     continue
 
                 print(f"Requesting with {total_tokens} tokens...")
-                chat_completion = self.openai_client.chat.completions.create(
-                    model=self.openai_model,
-                    messages=[
+                create_kwargs: Dict[str, Any] = {
+                    "model": self.openai_model,
+                    "messages": [
                         {
                             "role": "system",
                             "content": (
@@ -263,7 +271,10 @@ class RedditSummarizer:
                         },
                         {"role": "user", "content": summary_prompt},
                     ],
-                )
+                }
+                if self.openai_service_tier:
+                    create_kwargs["service_tier"] = self.openai_service_tier
+                chat_completion = self.openai_client.chat.completions.create(**create_kwargs)
                 message = chat_completion.choices[0].message
                 summary_text = message.content or ""
                 return summary_text, references
@@ -450,7 +461,7 @@ def main() -> None:
             elif api_choice == "2":
                 summary_text = summarizer.summarize_with_claude(content, subreddit)
                 formatted_summary = summary_text
-                model_used = "claude-3-5-sonnet-20241022"
+                model_used = summarizer.claude_model
             else:
                 summary, references = summarizer.summarize_with_ollama(content, subreddit)
                 formatted_summary = summarizer.format_summary_with_footnotes(summary, references)

@@ -113,7 +113,7 @@ def run_summary(
             model_used = summarizer.openai_model
         elif api_choice == "claude":
             formatted_summary = summarizer.summarize_with_claude(content, subreddit)
-            model_used = "claude-3-5-sonnet-20241022"
+            model_used = summarizer.claude_model
         else:
             summary, references = summarizer.summarize_with_ollama(content, subreddit)
             formatted_summary = summarizer.format_summary_with_footnotes(summary, references)

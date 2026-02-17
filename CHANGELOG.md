@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-16
+
+### Added
+
+- OpenAI [Flex processing](https://developers.openai.com/api/docs/guides/flex-processing) support via `openai.service_tier` in `config.yaml`. Set to `"flex"` for batch-rate pricing on non-urgent workloads.
+
+## [1.1.0] - 2026-02-16
+
+### Added
+
+- `config.yaml` configuration file for setting OpenAI, Claude, and Ollama model names in one place instead of scattering them across code and environment variables.
+- `config.py` loader with built-in defaults when `config.yaml` is absent.
+- `pyyaml` dependency in `requirements.txt`.
+
+### Changed
+
+- `summarize_claude_openai.py` and `subreddit_summary.py` now read model names from `config.yaml` (with environment variable overrides still supported).
+- Claude model is no longer hardcoded; stored as `self.claude_model` on `RedditSummarizer`, consistent with OpenAI and Ollama.
+
 ## [1.0.0] - 2026-02-16
 
 ### Added

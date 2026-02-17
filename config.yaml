@@ -1,0 +1,14 @@
+# Model configuration for Reddit Sentiment summarizers.
+# Environment variables (OPENAI_SUMMARY_MODEL, OLLAMA_MODEL, OLLAMA_URL)
+# override these values when set.
+
+models:
+  openai: gpt-5.2
+  claude: claude-haiku-4-5
+  ollama: gemma3:12b
+
+openai:
+  service_tier: flex  # "flex" for batch-rate pricing, "auto" for default
+
+ollama:
+  url: http://localhost:11434/api/chat
