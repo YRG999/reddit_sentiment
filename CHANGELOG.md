@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-17
+
+### Changed
+
+- Replaced all `input()`/`print()` calls in `subreddit_summary.py` with `click.prompt`, `click.confirm`, and `click.echo` for consistent CLI behavior and graceful Ctrl+C handling.
+- `SUBREDDIT` argument is now optional — prompts interactively via `click.prompt` when omitted.
+- Replaced `pytz` with the standard library `zoneinfo` module in `subreddit_summary.py`.
+- All file timestamps now consistently use Eastern time (previously the filename timestamp used naive local time while the summary header used Eastern).
+- Refactored API dispatch from `if/elif/else` chain to a dict-based `_summarize()` helper. Unknown API choices now raise `KeyError` instead of falling through silently.
+- Separated error handling in `run_summary()` into distinct try/except blocks for content fetching (catches `ConnectionError` specifically) and summarization, replacing the single broad `except Exception`.
+- `validate_subreddit()` return value is now assigned back, so future normalization (e.g., lowercasing) will take effect.
+- Eliminated mutual recursion between `confirm_hours()` and `prompt_for_hours()` — consolidated into a single iterative loop.
+
 ## [1.3.0] - 2026-02-17
 
 ### Added

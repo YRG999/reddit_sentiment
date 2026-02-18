@@ -20,10 +20,12 @@ python subreddit_summary.py technology --hours 24 --api openai
 
 This fetches recent posts and comments from r/technology, sends them to OpenAI for summarization, prints the result, and saves it to `output/technology/`.
 
-You can also omit flags and answer interactively:
+You can also omit any or all arguments and answer interactively:
 
 ```bash
 python subreddit_summary.py technology
+# or fully interactive:
+python subreddit_summary.py
 ```
 
 ### 3. Ask follow-up questions
@@ -166,15 +168,15 @@ python subreddit_summary.py technology --hours 12 --api claude --topics "AI,robo
 python subreddit_summary.py singularity --hours 6 --api ollama --no-save
 ```
 
-| Option             | Description                                          |
-| ------------------ | ---------------------------------------------------- |
-| `SUBREDDIT`        | Required positional argument                         |
-| `--hours` / `-H`   | Hours to look back (prompts if omitted; confirms if >120) |
-| `--api` / `-a`     | `openai`, `claude`, or `ollama` (prompts if omitted) |
-| `--topics` / `-t`  | Comma-separated topic filter                         |
-| `--no-clean`       | Skip NLTK text cleaning                              |
-| `--no-save`        | Skip saving output files                             |
-| `--no-raw`         | Skip saving raw data JSON                            |
+| Option | Description |
+| ------------------ | --------------------------------------- |
+| `SUBREDDIT` | Positional argument (prompts if omitted) |
+| `--hours` / `-H` | Hours to look back (prompts if omitted; confirms if >120) |
+| `--api` / `-a` | `openai`, `claude`, or `ollama` (prompts if omitted) |
+| `--topics` / `-t` | Comma-separated topic filter |
+| `--no-clean` | Skip NLTK text cleaning |
+| `--no-save` | Skip saving output files |
+| `--no-raw` | Skip saving raw data JSON |
 
 Output is saved to `output/<subreddit>/` as `summary_<subreddit>_<timestamp>.txt` and `raw_data_<subreddit>_<timestamp>.json`.
 
