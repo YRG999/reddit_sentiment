@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-03-29
+
+### Added
+
+- `clean_text.py`: `--split`/`-s` option to split cleaned output into blocks of N characters (word-boundary safe), separated by `\n\n---\n\n`. Defaults to no splitting. Block count is included in the save confirmation message when used.
+
+## [1.5.1] - 2026-03-29
+
+### Changed
+
+- `clean_text.py` now writes to `<input>_cleaned.<ext>` by default instead of stdout. Added `--stdout` flag to restore the previous stdout behavior.
+
+## [1.5.0] - 2026-03-29
+
+### Changed
+
+- Rewrote `clean_text.py` as a proper `click` CLI. Accepts a file path as a positional argument, prints cleaned text to stdout by default, and optionally writes to a file with `-o`. Word count savings are reported to stderr when writing to a file. No longer depends on `RedditSummarizer` — the cleaning logic is self-contained.
+- Added `CLAUDE.md` with project overview and guidance for Claude Code.
+
 ## [1.4.1] - 2026-02-23
 
 ### Changed

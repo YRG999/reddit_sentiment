@@ -51,7 +51,7 @@ Select a previously saved summary or raw data file and ask questions about it.
   - [`summarize_claude_openai.py` -- multi-API summarizer](#summarize_claude_openaipy----multi-api-summarizer)
   - [`summarize_with_ollama.py` -- Ollama-only summarizer](#summarize_with_ollamapy----ollama-only-summarizer)
   - [`summarize_openai.py` -- legacy OpenAI summarizer](#summarize_openaipy----legacy-openai-summarizer)
-  - [`clean_text.py` -- text cleaning helper](#clean_textpy----text-cleaning-helper)
+  - [`clean_text.py` -- text cleaning CLI](#clean_textpy----text-cleaning-cli)
   - [`sentiment.py` -- sentiment analysis](#sentimentpy----sentiment-analysis)
   - [`comments.py` -- comment/search utility](#commentspy----commentsearch-utility)
   - [`posts.py` -- post scraper](#postspy----post-scraper)
@@ -240,13 +240,25 @@ python summarize_openai.py
 
 ---
 
-### `clean_text.py` -- text cleaning helper
+### `clean_text.py` -- text cleaning CLI
 
-Cleans an arbitrary text file using NLTK tokenization and stopword removal. Outputs to `<original>_cleaned.<ext>`.
+Cleans an arbitrary text file using NLTK tokenization and stop-word removal. Useful for preparing text to paste into an LLM to reduce token usage. Lowercases text, strips punctuation, and removes common English stop words.
 
 ```bash
-python clean_text.py
+# Print cleaned text to stdout
+python clean_text.py myfile.txt
+
+# Save to a file (prints word count savings to stderr)
+python clean_text.py myfile.txt -o myfile_cleaned.txt
+
+# Pipe directly to clipboard (macOS)
+python clean_text.py myfile.txt | pbcopy
 ```
+
+| Option | Description |
+| -------------- | --------------------------------------------- |
+| `INPUT_FILE` | Path to the text file to clean |
+| `--output`/`-o` | Write output to a file instead of stdout |
 
 ---
 
