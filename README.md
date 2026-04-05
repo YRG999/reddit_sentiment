@@ -199,12 +199,18 @@ Prompts for subreddit name(s), hours, topics, cleaning, and save options.
 Load a previously saved summary or raw data file and ask follow-up questions using the same OpenAI model.
 
 ```bash
+# Pass a file directly
+python followup.py output/technology/summary_technology_20260329_120000.txt
+
+# Interactive file picker
 python followup.py
 ```
 
-1. Select a `summary_*.txt` or `raw_data_*.json` file when prompted.
-2. Ask questions at the prompt. Press Enter on a blank line to exit.
-3. Each Q&A session is saved to `followup_*.txt`.
+| Option | Description |
+| ----------- | ---------------------------------------------------- |
+| `FILE` | Path to a `summary_*.txt` or `raw_data_*.json` file (optional — prompts if omitted) |
+
+Ask questions at the prompt. Press Enter on a blank line to exit. Each Q&A session is saved to `followup_*.txt` in the `output/<subreddit>/` directory.
 
 ---
 

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-30
+
+### Changed
+
+- `followup.py` converted to a `click` CLI. Accepts an optional `FILE` positional argument (path to a `summary_*.txt` or `raw_data_*.json` file). Falls back to the existing interactive file picker when omitted. All `print()` calls replaced with `click.echo()`. `load_context_from_file` updated to accept full paths, not just basenames.
+
 ## [1.5.2] - 2026-03-29
 
 ### Added

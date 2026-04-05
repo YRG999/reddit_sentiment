@@ -1,17 +1,8 @@
-# followup.py
-# Loads a previously saved Reddit summary or raw_data file and lets you ask follow-up
-# questions using the same OpenAI model configuration as summarize.py.
-# Usage:
-#   1. First run summarize.py to create summary_*.txt and/or raw_data_*.json files.
-#   2. Run: python followup.py
-#   3. Select a session file when prompted.
-#   4. Enter follow-up questions; press Enter on a blank line to exit.
-#   5. Each follow-up Q&A is saved as followup_*.txt in the current directory.
-
 #!/usr/bin/env python3
 
 import os
 import json
+import click
 from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -50,38 +41,39 @@ def choose_session_file():
             print("Please enter a valid number.")
 
 
-def load_context_from_file(filename):
+def load_context_from_file(filepath):
     """
     Load context from either:
     - raw_data_<subreddit>_<timestamp>.json  (has full content)
     - summary_<subreddit>_<timestamp>.txt   (summary only; minimal context)
     """
-    if filename.startswith("raw_data_") and filename.endswith(".json"):
-        with open(filename, "r", encoding="utf-8") as f:
+    basename = os.path.basename(filepath)
+
+    if basename.startswith("raw_data_") and basename.endswith(".json"):
+        with open(filepath, "r", encoding="utf-8") as f:
             content = json.load(f)
-        # Try to infer subreddit from filename: raw_data_<subreddit>_<timestamp>.json
-        parts = filename[len("raw_data_") : -len(".json")].split("_")
+        parts = basename[len("raw_data_") : -len(".json")].split("_")
         subreddit = "_".join(parts[:-1]) if len(parts) > 1 else "unknown"
         return {
             "subreddit": subreddit,
             "content": content,
             "formatted_summary": None,
-            "source_file": filename,
+            "source_file": filepath,
         }
 
-    if filename.startswith("summary_") and filename.endswith(".txt"):
-        with open(filename, "r", encoding="utf-8") as f:
+    if basename.startswith("summary_") and basename.endswith(".txt"):
+        with open(filepath, "r", encoding="utf-8") as f:
             summary_text = f.read()
-        parts = filename[len("summary_") : -len(".txt")].split("_")
+        parts = basename[len("summary_") : -len(".txt")].split("_")
         subreddit = "_".join(parts[:-1]) if len(parts) > 1 else "unknown"
         return {
             "subreddit": subreddit,
             "content": None,
             "formatted_summary": summary_text,
-            "source_file": filename,
+            "source_file": filepath,
         }
 
-    raise ValueError(f"Unsupported session file type: {filename}")
+    raise ValueError(f"Unsupported session file type: {basename}")
 
 
 def build_followup_prompt(context, question):
@@ -181,50 +173,62 @@ def save_followup_to_file(
     return filename
 
 
-def main():
-    # Reuse environment loading and client config from summarize.py via RedditSummarizer
+@click.command()
+@click.argument("file", type=click.Path(exists=True, readable=True), required=False, default=None)
+def main(file):
+    """Ask follow-up questions about a saved Reddit summary or raw data file.
+
+    FILE can be a summary_*.txt or raw_data_*.json file. If omitted, prompts
+    interactively to select from files in the current directory.
+    """
     load_dotenv()
     base_summarizer = RedditSummarizer()
     openai_client = base_summarizer.client
-    model_name = base_summarizer.model_name  # single source of truth
+    model_name = base_summarizer.model_name
 
-    filename = choose_session_file()
-    if not filename:
-        print("No file selected. Exiting.")
-        return
+    if file:
+        filepath = file
+    else:
+        filepath = choose_session_file()
+        if not filepath:
+            click.echo("No file selected. Exiting.")
+            return
 
-    context = load_context_from_file(filename)
+    try:
+        context = load_context_from_file(filepath)
+    except ValueError as e:
+        raise click.BadParameter(str(e), param_hint="FILE")
+
     subreddit = context.get("subreddit", "unknown")
-    print(f"Loaded context from: {filename}")
-    print(f"Subreddit (inferred): {subreddit}")
-
-    print("\nYou can now ask follow-up questions about this analysis.")
-    print("Press Enter on an empty line to exit.\n")
+    click.echo(f"Loaded context from: {filepath}")
+    click.echo(f"Subreddit (inferred): {subreddit}")
+    click.echo("\nYou can now ask follow-up questions about this analysis.")
+    click.echo("Press Enter on an empty line to exit.\n")
 
     while True:
-        question = input("Follow-up question (blank line to exit): ").strip()
+        question = click.prompt("Follow-up question (blank line to exit)", default="", show_default=False).strip()
         if not question:
-            print("Exiting follow-up session.")
+            click.echo("Exiting follow-up session.")
             break
 
         prompt = build_followup_prompt(context, question)
-        print("\nThinking...\n")
+        click.echo("\nThinking...\n")
         answer = ask_followup(openai_client, model_name, prompt)
 
-        print("ANSWER:")
-        print(answer)
-        print("\n" + "=" * 50 + "\n")
+        click.echo("ANSWER:")
+        click.echo(answer)
+        click.echo("\n" + "=" * 50 + "\n")
 
         try:
             saved_file = save_followup_to_file(
                 subreddit=subreddit,
-                source_file=context.get("source_file", filename),
+                source_file=context.get("source_file", filepath),
                 question=question,
                 answer=answer,
             )
-            print(f"Follow-up saved to: {saved_file}\n")
+            click.echo(f"Follow-up saved to: {saved_file}\n")
         except Exception as e:
-            print(f"Warning: could not save follow-up to file: {e}\n")
+            click.echo(f"Warning: could not save follow-up to file: {e}\n")
 
 
 if __name__ == "__main__":
