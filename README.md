@@ -301,21 +301,19 @@ See `reddit_streamer/README.md` for details.
 ├── subreddit_summary.py            # CLI summarizer (recommended entry point)
 ├── followup.py                     # Follow-up Q&A on saved summaries (OpenAI/Claude/Ollama)
 ├── summarize_claude_openai.py      # Multi-API summarizer (shared RedditSummarizer class)
-├── config.yaml                     # Model configuration (OpenAI, Claude, Ollama)
-├── config.py                       # Config loader with defaults
-├── credentials.py                  # Credential loader with 1Password op:// support
-├── clean_text.py                   # Text cleaning utility
+├── clean_text.py                   # Standalone text-cleaning CLI
 ├── sentiment.py                    # Sentiment analysis
 ├── comments.py                     # Comment/search menu UI
 ├── posts.py                        # Post scraper
+├── config.yaml                     # Model configuration (OpenAI, Claude, Ollama)
+├── config.py                       # Config loader with defaults
+├── credentials.py                  # Credential loader with 1Password op:// support
 ├── reddit_streamer/
 │   ├── src/streamer.py             # Real-time post/comment streamer
 │   └── README.md
-├── output/                         # Generated summaries and data (gitignored)
-├── logs/                           # Application logs (gitignored)
+├── _doc/claude_summaries/          # Session summaries
 ├── .env.example                    # Environment variable template
 ├── requirements.txt                # Python dependencies
-├── CHANGELOG.md                    # Version history
-├── README-summarize.md             # Ollama summarizer guide
-└── README_old.md                   # Original setup notes
+├── CLAUDE.md                       # Claude Code guidance for this repo
+└── CHANGELOG.md                    # Version history
 ```
