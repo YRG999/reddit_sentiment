@@ -37,3 +37,19 @@
 ### Docs updated
 
 - CHANGELOG (v1.8.0), README (followup.py section, TOC, Project Layout), CLAUDE.md (Key Files table)
+
+## Session 3
+
+### `reddit_streamer/src/streamer.py` — bug fix
+
+- Added missing `import os` (caused `NameError` at runtime when constructing the log path with `os.path.join`)
+
+### `reddit_streamer/README.md` — documentation
+
+- Added **Dependencies** section noting that `streamer.py` imports `credentials.py` from the project root and cannot run fully standalone without it
+- Fixed markdown linting warnings: added language specifiers to all fenced code blocks, fixed ordered list numbering, added trailing newline
+
+### `reddit_streamer/CHANGELOG.md` — new file
+
+- Created following the root Keep a Changelog / semver format
+- v1.0.0 entry for original release; v1.0.1 entry for today's `import os` fix and doc additions

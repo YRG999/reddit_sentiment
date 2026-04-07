@@ -4,7 +4,7 @@ This project is designed to stream posts and comments from a specified subreddit
 
 ## Project Structure
 
-```
+```text
 reddit_streamer
 ├── src
 │   └── streamer.py
@@ -12,11 +12,15 @@ reddit_streamer
 └── README.md
 ```
 
+## Dependencies
+
+`streamer.py` imports `credentials.py` from the **project root** (two levels up). This file must be present and accessible — `reddit_streamer` cannot be run as a fully standalone directory without it.
+
 ## Requirements
 
 To run this project, you need to install the required dependencies. You can do this by running:
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -25,7 +29,7 @@ pip install -r requirements.txt
 1. Navigate to the project directory.
 2. Run the streamer script:
 
-```
+```bash
 python src/streamer.py
 ```
 
@@ -35,7 +39,7 @@ python src/streamer.py
 
 ## Example
 
-```
+```text
 Enter subreddit name: learnpython
 Enter total number of items to report: 100
 ```

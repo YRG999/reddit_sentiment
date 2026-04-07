@@ -6,6 +6,7 @@ import time
 import re
 import sys
 from datetime import datetime
+import os
 import pathlib
 
 # Add project root to path so credentials module can be imported
