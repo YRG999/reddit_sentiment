@@ -12,8 +12,7 @@ A collection of standalone Python CLI tools for fetching, summarizing, and analy
 | ---- | ------- |
 | `subreddit_summary.py` | Primary CLI — fetch and summarize a subreddit (recommended entry point) |
 | `summarize_claude_openai.py` | Multi-API summarizer; also exports `RedditSummarizer` used by other tools |
-| `summarize.py` / `summarize_openai.py` | OpenAI-only summarizers |
-| `followup.py` | Follow-up Q&A on saved summaries |
+| `followup.py` | Follow-up Q&A on saved summaries; supports `--api openai/claude/ollama` |
 | `clean_text.py` | Standalone text-cleaning CLI (NLTK stop-word removal) |
 | `sentiment.py` | Sentiment analysis via TextBlob |
 | `comments.py` / `posts.py` | Comment streaming and post scraping |

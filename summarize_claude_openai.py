@@ -70,7 +70,8 @@ class RedditSummarizer:
         try:
             tokens = word_tokenize(text.lower())
             stop_words = set(stopwords.words("english"))
-            filtered = [t for t in tokens if t not in string.punctuation and t not in stop_words]
+            bad = set(string.punctuation) | set("=~^`\\") | {"\u2022", "\u2013", "\u2014", "\u2015"}
+            filtered = [t for t in tokens if t not in bad and t not in stop_words]
             return " ".join(filtered)
         except Exception as exc:
             print(f"Warning: Error cleaning text: {exc}")

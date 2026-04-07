@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-04-07
+
+### Changed
+
+- `followup.py`: added `--api`/`-a` option (`openai` default, `claude`, `ollama`) so follow-up Q&A can use any supported LLM backend. `ask_followup()` dispatches to the correct client and returns the model name used. Saved follow-up files now include `API: <api> (<model>)` in their metadata header.
+- `followup.py`: now imports `RedditSummarizer` from `summarize_claude_openai` instead of the deleted `summarize`. Removed `load_dotenv()` call — credential loading is handled by `credentials.py`.
+- `summarize_claude_openai.py`: extended `clean_text()` punctuation filter to match `clean_text.py`'s `_EXTRA_PUNCT` set (`=`, `~`, `^`, `` ` ``, `\`, bullets, en/em dashes).
+
+### Removed
+
+- `summarize.py` — superseded by `summarize_claude_openai.py`; no longer imported by anything.
+- `summarize_openai.py` — same; unused.
+- `summarize_with_ollama.py` — thin interactive wrapper around `summarize_with_ollama()`; fully superseded by `subreddit_summary.py --api ollama`.
+
 ## [1.7.0] - 2026-04-07
 
 ### Changed

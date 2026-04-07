@@ -4,10 +4,8 @@ import os
 import json
 import click
 from datetime import datetime
-from dotenv import load_dotenv
-from openai import OpenAI
 
-from summarize import RedditSummarizer  # reuse client/model setup from summarize.py
+from summarize_claude_openai import RedditSummarizer
 
 
 def list_session_files():
@@ -102,7 +100,6 @@ def build_followup_prompt(context, question):
         base.append("")
 
     if content:
-        # Keep raw context compact to avoid huge prompts
         base.append("=== RAW CONTENT (TRUNCATED) ===")
         posts = content.get("posts", [])[:10]
         comments = content.get("comments", [])[:20]
@@ -129,21 +126,42 @@ def build_followup_prompt(context, question):
     return "\n".join(base)
 
 
-def ask_followup(
-    openai_client: OpenAI,
-    model: str,
-    prompt: str,
-) -> str:
-    """Send the follow-up prompt to OpenAI."""
-    resp = openai_client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a concise, accurate assistant."},
-            {"role": "user", "content": prompt},
-        ],
+def ask_followup(summarizer: RedditSummarizer, api: str, prompt: str) -> tuple[str, str]:
+    """Send the follow-up prompt to the chosen API. Returns (answer, model_used)."""
+    system = "You are a concise, accurate assistant."
+    messages = [{"role": "user", "content": prompt}]
+
+    if api == "claude":
+        if not summarizer.claude_client:
+            raise click.ClickException("Anthropic API key not found. Set ANTHROPIC_API_KEY in .env.")
+        resp = summarizer.claude_client.messages.create(
+            model=summarizer.claude_model,
+            max_tokens=1024,
+            system=system,
+            messages=messages,
+        )
+        answer = resp.content[0].text if resp.content else ""
+        return answer, summarizer.claude_model
+
+    if api == "ollama":
+        from ollama import chat  # type: ignore
+        response = chat(
+            model=summarizer.ollama_model,
+            messages=[{"role": "system", "content": system}] + messages,
+        )
+        if isinstance(response, dict):
+            answer = response.get("message", {}).get("content", "") or ""
+        else:
+            answer = response.message.content or ""
+        return answer, summarizer.ollama_model
+
+    # default: openai
+    resp = summarizer.client.chat.completions.create(
+        model=summarizer.model_name,
+        messages=[{"role": "system", "content": system}] + messages,
     )
-    content = resp.choices[0].message.content
-    return content if content is not None else ""
+    answer = resp.choices[0].message.content or ""
+    return answer, summarizer.model_name
 
 
 def save_followup_to_file(
@@ -151,11 +169,10 @@ def save_followup_to_file(
     source_file: str,
     question: str,
     answer: str,
+    api: str,
+    model: str,
 ) -> str:
-    """
-    Save a follow-up Q&A to a timestamped text file, similar in spirit
-    to save_summary_to_file in summarize.py.
-    """
+    """Save a follow-up Q&A to a timestamped text file."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"followup_{subreddit}_{timestamp}.txt"
 
@@ -163,6 +180,7 @@ def save_followup_to_file(
         f.write("FOLLOW-UP METADATA:\n")
         f.write(f"Subreddit: {subreddit}\n")
         f.write(f"Source session file: {source_file}\n")
+        f.write(f"API: {api} ({model})\n")
         f.write(f"Follow-up asked at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
         f.write("\n" + "=" * 50 + "\n\n")
         f.write("QUESTION:\n")
@@ -175,16 +193,15 @@ def save_followup_to_file(
 
 @click.command()
 @click.argument("file", type=click.Path(exists=True, readable=True), required=False, default=None)
-def main(file):
+@click.option("--api", "-a", type=click.Choice(["openai", "claude", "ollama"]), default="openai",
+              show_default=True, help="LLM backend to use for follow-up answers.")
+def main(file, api):
     """Ask follow-up questions about a saved Reddit summary or raw data file.
 
     FILE can be a summary_*.txt or raw_data_*.json file. If omitted, prompts
     interactively to select from files in the current directory.
     """
-    load_dotenv()
-    base_summarizer = RedditSummarizer()
-    openai_client = base_summarizer.client
-    model_name = base_summarizer.model_name
+    summarizer = RedditSummarizer()
 
     if file:
         filepath = file
@@ -202,6 +219,7 @@ def main(file):
     subreddit = context.get("subreddit", "unknown")
     click.echo(f"Loaded context from: {filepath}")
     click.echo(f"Subreddit (inferred): {subreddit}")
+    click.echo(f"API: {api}")
     click.echo("\nYou can now ask follow-up questions about this analysis.")
     click.echo("Press Enter on an empty line to exit.\n")
 
@@ -213,7 +231,14 @@ def main(file):
 
         prompt = build_followup_prompt(context, question)
         click.echo("\nThinking...\n")
-        answer = ask_followup(openai_client, model_name, prompt)
+
+        try:
+            answer, model_used = ask_followup(summarizer, api, prompt)
+        except click.ClickException:
+            raise
+        except Exception as e:
+            click.echo(f"Error: {e}\n")
+            continue
 
         click.echo("ANSWER:")
         click.echo(answer)
@@ -225,6 +250,8 @@ def main(file):
                 source_file=context.get("source_file", filepath),
                 question=question,
                 answer=answer,
+                api=api,
+                model=model_used,
             )
             click.echo(f"Follow-up saved to: {saved_file}\n")
         except Exception as e:

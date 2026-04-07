@@ -46,11 +46,8 @@ Select a previously saved summary or raw data file and ask questions about it.
 - [Configuration](#configuration)
 - [Tools](#tools)
   - [`subreddit_summary.py` -- CLI summarizer (recommended)](#subreddit_summarypy----cli-summarizer-recommended)
-  - [`summarize.py` -- OpenAI summarizer](#summarizepy----openai-summarizer)
   - [`followup.py` -- follow-up Q&A](#followuppy----follow-up-qa)
   - [`summarize_claude_openai.py` -- multi-API summarizer](#summarize_claude_openaipy----multi-api-summarizer)
-  - [`summarize_with_ollama.py` -- Ollama-only summarizer](#summarize_with_ollamapy----ollama-only-summarizer)
-  - [`summarize_openai.py` -- legacy OpenAI summarizer](#summarize_openaipy----legacy-openai-summarizer)
   - [`clean_text.py` -- text cleaning CLI](#clean_textpy----text-cleaning-cli)
   - [`sentiment.py` -- sentiment analysis](#sentimentpy----sentiment-analysis)
   - [`comments.py` -- comment/search utility](#commentspy----commentsearch-utility)
@@ -182,33 +179,26 @@ Output is saved to `output/<subreddit>/` as `summary_<subreddit>_<timestamp>.txt
 
 ---
 
-### `summarize.py` -- OpenAI summarizer
-
-Interactive summarizer using OpenAI. Supports multiple subreddits, topic filtering, text cleaning, and file saving.
-
-```bash
-python summarize.py
-```
-
-Prompts for subreddit name(s), hours, topics, cleaning, and save options.
-
----
-
 ### `followup.py` -- follow-up Q&A
 
-Load a previously saved summary or raw data file and ask follow-up questions using the same OpenAI model.
+Load a previously saved summary or raw data file and ask follow-up questions using any supported LLM backend.
 
 ```bash
-# Pass a file directly
+# Pass a file directly (defaults to OpenAI)
 python followup.py output/technology/summary_technology_20260329_120000.txt
+
+# Use Claude or Ollama instead
+python followup.py output/technology/summary_technology_20260329_120000.txt --api claude
+python followup.py output/technology/summary_technology_20260329_120000.txt --api ollama
 
 # Interactive file picker
 python followup.py
 ```
 
 | Option | Description |
-| ----------- | ---------------------------------------------------- |
+| ------------- | ------------------------------------------------------------------ |
 | `FILE` | Path to a `summary_*.txt` or `raw_data_*.json` file (optional — prompts if omitted) |
+| `--api`/`-a` | LLM backend: `openai` (default), `claude`, or `ollama` |
 
 Ask questions at the prompt. Press Enter on a blank line to exit. Each Q&A session is saved to `followup_*.txt` in the `output/<subreddit>/` directory.
 
@@ -220,28 +210,6 @@ Interactive summarizer that lets you choose between OpenAI, Claude, and Ollama a
 
 ```bash
 python summarize_claude_openai.py
-```
-
----
-
-### `summarize_with_ollama.py` -- Ollama-only summarizer
-
-Simplified wrapper for Ollama summarization. Requires Ollama running locally with the configured model (default: `gemma3:12b`).
-
-```bash
-python summarize_with_ollama.py
-```
-
-See also `README-summarize.md` for Ollama-specific setup details.
-
----
-
-### `summarize_openai.py` -- legacy OpenAI summarizer
-
-Older evolution of the OpenAI summarizer (v1-v9). Superseded by `summarize.py`.
-
-```bash
-python summarize_openai.py
 ```
 
 ---
@@ -331,11 +299,8 @@ See `reddit_streamer/README.md` for details.
 ```text
 .
 ├── subreddit_summary.py            # CLI summarizer (recommended entry point)
-├── summarize.py                    # OpenAI summarizer
-├── followup.py                     # Follow-up Q&A on saved summaries
+├── followup.py                     # Follow-up Q&A on saved summaries (OpenAI/Claude/Ollama)
 ├── summarize_claude_openai.py      # Multi-API summarizer (shared RedditSummarizer class)
-├── summarize_with_ollama.py        # Ollama-only summarizer
-├── summarize_openai.py             # Legacy OpenAI summarizer
 ├── config.yaml                     # Model configuration (OpenAI, Claude, Ollama)
 ├── config.py                       # Config loader with defaults
 ├── credentials.py                  # Credential loader with 1Password op:// support
