@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-04-07
+
+### Changed
+
+- `clean_text.py`: added `preprocess()` step that runs before NLTK tokenization to strip decorative and structural markup:
+  - Pure-separator lines (`===`, `---`, `***`, etc.) are removed
+  - Markdown table separator rows (`|---|---|`) are removed
+  - Unicode arrows (`→`, `←`) and em/en dashes replaced with spaces
+  - Markdown bold/italic/header markers (`*`, `_`, `#`, `|`) replaced with spaces
+  - Extended punctuation filter (`_EXTRA_PUNCT`) catches characters not in `string.punctuation` that NLTK would otherwise keep as tokens: `=`, `~`, `^`, `` ` ``, `\`, bullets (`•`), and em/en dashes
+- `clean_text.py`: URL handling is now selective. By default, URLs are collapsed to their domain (e.g. `https://example.com/path` → `example.com`) to preserve attribution context with minimal token cost. Pass `--strip-urls` to remove URLs entirely.
+
 ## [1.6.0] - 2026-03-30
 
 ### Changed

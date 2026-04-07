@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import string
 import click
 import nltk
@@ -16,13 +17,37 @@ def ensure_nltk_data():
             nltk.download(resource, quiet=True)
 
 
-def clean_text(text: str) -> str:
+# Extend string.punctuation with chars that NLTK keeps but carry no meaning
+_EXTRA_PUNCT = set("=~^`\\") | set("\u2022\u2013\u2014\u2015")  # bullets, en/em dashes
+
+
+def preprocess(text: str, strip_urls: bool = False) -> str:
+    """Strip decorative markup before tokenisation to reduce noise."""
+    if strip_urls:
+        text = re.sub(r"https?://\S+", "", text)
+    else:
+        # Keep the domain as a readable token; drop protocol and path noise
+        text = re.sub(r"https?://([^/\s]+)[^\s]*", r"\1", text)
+    # Remove lines that are purely decorative separators (===, ---, ***, etc.)
+    text = re.sub(r"^\s*[=\-*_]{2,}\s*$", "", text, flags=re.MULTILINE)
+    # Remove markdown table separator rows: |---|  |:---:|  etc.
+    text = re.sub(r"^\s*\|[\s\-:|]+\|\s*$", "", text, flags=re.MULTILINE)
+    # Replace unicode arrows / dashes with a space
+    text = re.sub(r"[→←↑↓—–\u2192\u2190]", " ", text)
+    # Strip markdown bold/italic/header markers
+    text = re.sub(r"[*_#|]", " ", text)
+    return text
+
+
+def clean_text(text: str, strip_urls: bool = False) -> str:
     if not text:
         return ""
+    text = preprocess(text, strip_urls=strip_urls)
     text = text.lower()
     tokens = word_tokenize(text)
     stop_words = set(stopwords.words("english"))
-    tokens = [t for t in tokens if t not in string.punctuation and t not in stop_words]
+    bad = set(string.punctuation) | _EXTRA_PUNCT
+    tokens = [t for t in tokens if t not in bad and t not in stop_words]
     return " ".join(tokens)
 
 
@@ -44,7 +69,8 @@ def split_text(text: str, max_chars: int) -> list[str]:
 @click.option("--output", "-o", type=click.Path(), default=None, help="Output file (default: <input>_cleaned.<ext>)")
 @click.option("--stdout", is_flag=True, help="Print to stdout instead of writing a file")
 @click.option("--split", "-s", type=int, default=None, help="Split output into blocks of N characters separated by ---")
-def main(input_file, output, stdout, split):
+@click.option("--strip-urls", is_flag=True, help="Remove URLs entirely (default: keep domain only)")
+def main(input_file, output, stdout, split, strip_urls):
     """Clean a text file to save tokens when pasting into an LLM.
 
     Lowercases text, removes punctuation and English stop words.
@@ -54,7 +80,7 @@ def main(input_file, output, stdout, split):
     with open(input_file, "r", encoding="utf-8") as f:
         raw = f.read()
 
-    cleaned = clean_text(raw)
+    cleaned = clean_text(raw, strip_urls=strip_urls)
 
     if split:
         blocks = split_text(cleaned, split)

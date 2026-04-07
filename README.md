@@ -248,23 +248,35 @@ python summarize_openai.py
 
 ### `clean_text.py` -- text cleaning CLI
 
-Cleans an arbitrary text file using NLTK tokenization and stop-word removal. Useful for preparing text to paste into an LLM to reduce token usage. Lowercases text, strips punctuation, and removes common English stop words.
+Cleans an arbitrary text file to reduce token usage when pasting into an LLM. Strips decorative markup and structural formatting (markdown, table separators, separator lines), collapses URLs to their domain, lowercases text, removes punctuation, and strips common English stop words via NLTK.
 
 ```bash
-# Print cleaned text to stdout
+# Save cleaned output (default: <input>_cleaned.<ext>)
 python clean_text.py myfile.txt
 
-# Save to a file (prints word count savings to stderr)
+# Print to stdout
+python clean_text.py myfile.txt --stdout
+
+# Pipe to clipboard (macOS)
+python clean_text.py myfile.txt --stdout | pbcopy
+
+# Save to a specific file
 python clean_text.py myfile.txt -o myfile_cleaned.txt
 
-# Pipe directly to clipboard (macOS)
-python clean_text.py myfile.txt | pbcopy
+# Remove URLs entirely instead of keeping the domain
+python clean_text.py myfile.txt --strip-urls
+
+# Split output into blocks of N characters (for multi-part LLM sessions)
+python clean_text.py myfile.txt --split 4000
 ```
 
 | Option | Description |
-| -------------- | --------------------------------------------- |
+| ---------------- | --------------------------------------------------------------- |
 | `INPUT_FILE` | Path to the text file to clean |
-| `--output`/`-o` | Write output to a file instead of stdout |
+| `--output`/`-o` | Write output to a specific file |
+| `--stdout` | Print to stdout instead of writing a file |
+| `--strip-urls` | Remove URLs entirely (default: keep domain as a readable token) |
+| `--split`/`-s N` | Split output into blocks of N characters, separated by `---` |
 
 ---
 
