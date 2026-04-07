@@ -53,3 +53,20 @@
 
 - Created following the root Keep a Changelog / semver format
 - v1.0.0 entry for original release; v1.0.1 entry for today's `import os` fix and doc additions
+
+## Session 4
+
+### `config.yaml` — model updates
+
+- Clarified config precedence: env vars → `config.yaml` → `config.py` defaults (config.yaml fully replaces defaults when present)
+- Used web search to confirm current models past knowledge cutoff (April 2026)
+- Updated `openai`: `gpt-5.2` → `gpt-5.4-nano` (GPT-5.4 released March 2026; nano tier chosen for best value)
+- Updated `claude`: `claude-haiku-4-5` → `claude-sonnet-4-6` (best quality/price; no date suffix needed for 4.6 models)
+- Kept `ollama: gemma3:12b` (32GB RAM confirmed sufficient)
+- Confirmed `claude-sonnet-4-6` and `claude-opus-4-6` use no date suffix; `claude-haiku-4-5-20251001` requires one
+
+### API connection test
+
+- Ran inline Python tests against all three APIs with new model names
+- All passed: `gpt-5.4-nano` ✅, `claude-sonnet-4-6` ✅, `gemma3:12b` ✅
+- Note: newer GPT models require `max_completion_tokens` not `max_tokens`; existing codebase is unaffected as it doesn't pass that parameter to OpenAI
