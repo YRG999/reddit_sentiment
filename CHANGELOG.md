@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
 ## [1.8.0] - 2026-04-07
 
 ### Changed
@@ -13,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `followup.py`: now imports `RedditSummarizer` from `summarize_claude_openai` instead of the deleted `summarize`. Removed `load_dotenv()` call — credential loading is handled by `credentials.py`.
 - `summarize_claude_openai.py`: extended `clean_text()` punctuation filter to match `clean_text.py`'s `_EXTRA_PUNCT` set (`=`, `~`, `^`, `` ` ``, `\`, bullets, en/em dashes).
 - `config.yaml`: updated default models — `openai` → `gpt-5.4-nano`, `claude` → `claude-sonnet-4-6`. Ollama unchanged (`gemma3:12b`).
+- `subreddit_summary.py`: summary output to terminal is now opt-in via `--print`/`-p` (defaults to off). "Files saved:" is always printed regardless.
 
 ### Removed
 

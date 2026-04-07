@@ -3,7 +3,7 @@
 # Usage:
 #   1. Configure API keys (.env) for Reddit + desired model provider(s).
 #   2. Run: python subreddit_summary.py <subreddit> [--hours N] [--api openai|claude|ollama] [--topics "a,b"]
-#   3. Summary prints to terminal and saves to output/<subreddit>/.
+#   3. Summary saves to output/<subreddit>/; use --print to also echo to terminal.
 
 import json
 import logging
@@ -125,6 +125,7 @@ def run_summary(
     clean_text: bool,
     save_files: bool,
     save_raw: bool,
+    print_output: bool = False,
 ) -> None:
     summarizer = RedditSummarizer()
 
@@ -168,8 +169,9 @@ def run_summary(
         click.echo(f"Error generating summary with {api_label}. Check logs for details.")
         return
 
-    click.echo("\nSUMMARY:")
-    click.echo(formatted_summary)
+    if print_output:
+        click.echo("\nSUMMARY:")
+        click.echo(formatted_summary)
 
     if save_files:
         analysis_params = {
@@ -207,7 +209,8 @@ def run_summary(
 @click.option("--no-clean", is_flag=True, default=False, help="Skip NLTK text cleaning.")
 @click.option("--no-save", is_flag=True, default=False, help="Skip saving output files.")
 @click.option("--no-raw", is_flag=True, default=False, help="Skip saving raw data JSON.")
-def main(subreddit, hours, api, topics, no_clean, no_save, no_raw):
+@click.option("--print", "-p", "print_output", is_flag=True, default=False, help="Print summary to terminal.")
+def main(subreddit, hours, api, topics, no_clean, no_save, no_raw, print_output):
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
     logging.basicConfig(
@@ -241,6 +244,7 @@ def main(subreddit, hours, api, topics, no_clean, no_save, no_raw):
         clean_text=not no_clean,
         save_files=not no_save,
         save_raw=not no_raw,
+        print_output=print_output,
     )
 
 

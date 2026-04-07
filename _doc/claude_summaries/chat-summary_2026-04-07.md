@@ -70,3 +70,12 @@
 - Ran inline Python tests against all three APIs with new model names
 - All passed: `gpt-5.4-nano` ✅, `claude-sonnet-4-6` ✅, `gemma3:12b` ✅
 - Note: newer GPT models require `max_completion_tokens` not `max_tokens`; existing codebase is unaffected as it doesn't pass that parameter to OpenAI
+
+## Session 5
+
+### `subreddit_summary.py` — opt-in terminal output
+
+- Added `--print`/`-p` flag (default off) to control whether the summary is echoed to the terminal
+- "Files saved:" output is always printed regardless of the flag
+- Updated top-of-file comment to reflect new behavior
+- Updated CHANGELOG
