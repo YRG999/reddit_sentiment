@@ -18,11 +18,12 @@ A collection of standalone Python CLI tools for fetching, summarizing, and analy
 | `comments.py` / `posts.py` | Comment streaming and post scraping |
 | `config.yaml` | Model names for OpenAI, Claude, Ollama |
 | `config.py` | Config loader with defaults |
-| `credentials.py` | `get_secret()` — resolves `.env` values or 1Password `op://` references |
+| `credentials.py` | `get_secret()` and `get_reddit_client()` — resolves `.env` values or 1Password `op://` references |
+| `reddit_streamer/src/streamer.py` | Real-time comment streamer with JSON logging |
 
 ## Architecture Notes
 
-- **Credentials**: Always use `get_secret()` from `credentials.py`. Never use `os.getenv()` directly. Supports both `.env` plain values and 1Password `op://` references.
+- **Credentials**: Always use `get_secret()` from `credentials.py`. Never use `os.getenv()` directly. Supports both `.env` plain values and 1Password `op://` references. Use `get_reddit_client()` for Reddit API access — do not construct `praw.Reddit` directly.
 - **Config**: Model names come from `config.yaml` via `config.py`. Environment variables override `config.yaml` when set.
 - **CLI style**: All CLIs use `click`. Use `click.prompt`, `click.confirm`, and `click.echo`. Interactive fallbacks when arguments are omitted.
 - **Output**: Summaries and raw data save to `output/<subreddit>/`. Logs go to `logs/`.

@@ -11,15 +11,15 @@ from __future__ import annotations
 import csv
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Literal, Sequence
+from zoneinfo import ZoneInfo
 
-import praw
 from praw.models import Submission, Comment, Subreddit
 from textblob import TextBlob
 
-from credentials import get_secret
+from credentials import get_reddit_client
 
 
 @dataclass(frozen=True)
@@ -57,12 +57,7 @@ class CommentSummary:
         ]
 
 
-def get_credentials() -> Dict[str, str]:
-    return {
-        "client_id": get_secret("REDDIT_CLIENT_ID") or "",
-        "client_secret": get_secret("REDDIT_CLIENT_SECRET") or "",
-        "user_agent": get_secret("REDDIT_USER_AGENT") or "",
-    }
+EASTERN_TZ = ZoneInfo("America/New_York")
 
 
 def get_sentiment(text: str) -> float:
@@ -126,7 +121,8 @@ def summarize_comments(post: Submission, comments: Sequence[SentimentRecord]) ->
 
 
 def format_timestamp(epoch_seconds: float) -> str:
-    return datetime.fromtimestamp(epoch_seconds).strftime("%Y-%m-%d %H:%M:%S")
+    dt = datetime.fromtimestamp(epoch_seconds, timezone.utc)
+    return dt.astimezone(EASTERN_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
 def get_user_input() -> tuple[str, int, Literal["hot", "new"]]:
@@ -197,12 +193,7 @@ def build_output_filename(prefix: str, subreddit: str, sort_method: str, timesta
 
 
 def main() -> None:
-    credentials = get_credentials()
-    reddit = praw.Reddit(
-        client_id=credentials["client_id"],
-        client_secret=credentials["client_secret"],
-        user_agent=credentials["user_agent"],
-    )
+    reddit = get_reddit_client()
 
     subreddit_name, limit, sort_method = get_user_input()
     subreddit = reddit.subreddit(subreddit_name)

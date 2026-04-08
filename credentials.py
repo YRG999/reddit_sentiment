@@ -7,9 +7,19 @@
 import os
 import subprocess
 
+import praw
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def get_reddit_client() -> praw.Reddit:
+    """Create a Reddit client using credentials from .env / 1Password."""
+    return praw.Reddit(
+        client_id=get_secret("REDDIT_CLIENT_ID"),
+        client_secret=get_secret("REDDIT_CLIENT_SECRET"),
+        user_agent=get_secret("REDDIT_USER_AGENT"),
+    )
 
 
 def get_secret(key: str, default: str | None = None) -> str | None:

@@ -20,6 +20,24 @@ def ensure_nltk_data():
 # Extend string.punctuation with chars that NLTK keeps but carry no meaning
 _EXTRA_PUNCT = set("=~^`\\") | set("\u2022\u2013\u2014\u2015")  # bullets, en/em dashes
 
+# Cached at module level to avoid rebuilding on every call
+_STOP_WORDS: set[str] | None = None
+_BAD_CHARS: set[str] | None = None
+
+
+def _get_stop_words() -> set[str]:
+    global _STOP_WORDS
+    if _STOP_WORDS is None:
+        _STOP_WORDS = set(stopwords.words("english"))
+    return _STOP_WORDS
+
+
+def _get_bad_chars() -> set[str]:
+    global _BAD_CHARS
+    if _BAD_CHARS is None:
+        _BAD_CHARS = set(string.punctuation) | _EXTRA_PUNCT
+    return _BAD_CHARS
+
 
 def preprocess(text: str, strip_urls: bool = False) -> str:
     """Strip decorative markup before tokenisation to reduce noise."""
@@ -45,8 +63,8 @@ def clean_text(text: str, strip_urls: bool = False) -> str:
     text = preprocess(text, strip_urls=strip_urls)
     text = text.lower()
     tokens = word_tokenize(text)
-    stop_words = set(stopwords.words("english"))
-    bad = set(string.punctuation) | _EXTRA_PUNCT
+    stop_words = _get_stop_words()
+    bad = _get_bad_chars()
     tokens = [t for t in tokens if t not in bad and t not in stop_words]
     return " ".join(tokens)
 

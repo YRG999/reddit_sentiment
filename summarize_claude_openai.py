@@ -7,26 +7,24 @@
 
 import json
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
+from zoneinfo import ZoneInfo
 
-import anthropic
-import praw
-import pytz
-import tiktoken
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from openai import OpenAI
-from anthropic.types import TextBlockParam
 
 from config import load_config
-from credentials import get_secret
+from credentials import get_reddit_client, get_secret
 
-def _make_text_block(text: str) -> TextBlockParam:
-    """
-    Create a simple Anthropics TextBlockParam-compatible dict for use in messages.
-    Returns a dict with type "text" and the provided text content.
-    """
+_UNSET = object()
+
+EASTERN_TZ = ZoneInfo("America/New_York")
+
+
+def _make_text_block(text: str) -> dict:
+    """Create a simple Anthropic TextBlockParam-compatible dict."""
     return {"type": "text", "text": text}
 
 class RedditSummarizer:
@@ -34,44 +32,68 @@ class RedditSummarizer:
         config = load_config()
         models = config.get("models", {})
 
-        self.reddit = praw.Reddit(
-            client_id=get_secret("REDDIT_CLIENT_ID"),
-            client_secret=get_secret("REDDIT_CLIENT_SECRET"),
-            user_agent=get_secret("REDDIT_USER_AGENT"),
-        )
-
-        openai_key = get_secret("OPENAI_API_KEY")
-        self.openai_client: Optional[OpenAI] = OpenAI(api_key=openai_key) if openai_key else None
+        # Model names (cheap config lookups — always loaded)
         self.openai_model = get_secret("OPENAI_SUMMARY_MODEL") or models.get("openai", "gpt-4o")
         openai_config = config.get("openai", {})
         self.openai_service_tier = openai_config.get("service_tier")
 
-        anthropic_key = get_secret("ANTHROPIC_API_KEY")
-        self.claude_client: Optional[anthropic.Anthropic] = (
-            anthropic.Anthropic(api_key=anthropic_key) if anthropic_key else None
-        )
         self.claude_model = models.get("claude", "claude-sonnet-4-5-20250929")
 
         ollama_config = config.get("ollama", {})
         self.ollama_url = get_secret("OLLAMA_URL") or ollama_config.get("url", "http://localhost:11434/api/chat")
         self.ollama_model = get_secret("OLLAMA_MODEL") or models.get("ollama", "gemma3:12b")
 
-        self.eastern_tz = pytz.timezone("America/New_York")
+        self.eastern_tz = EASTERN_TZ
         self.MAX_TOKENS = 8000
 
-        try:
-            self.tokenizer = tiktoken.encoding_for_model(self.openai_model)
-        except KeyError:
-            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        # Lazy-init backing fields (clients created on first access)
+        self._reddit = _UNSET
+        self._openai_client = _UNSET
+        self._claude_client = _UNSET
+        self._tokenizer = _UNSET
+
+        # Cached text-cleaning sets (built once)
+        self._stop_words = set(stopwords.words("english"))
+        self._bad_chars = set(string.punctuation) | set("=~^`\\") | {"\u2022", "\u2013", "\u2014", "\u2015"}
+
+    @property
+    def reddit(self):
+        if self._reddit is _UNSET:
+            self._reddit = get_reddit_client()
+        return self._reddit
+
+    @property
+    def openai_client(self):
+        if self._openai_client is _UNSET:
+            from openai import OpenAI
+            key = get_secret("OPENAI_API_KEY")
+            self._openai_client = OpenAI(api_key=key) if key else None
+        return self._openai_client
+
+    @property
+    def claude_client(self):
+        if self._claude_client is _UNSET:
+            import anthropic
+            key = get_secret("ANTHROPIC_API_KEY")
+            self._claude_client = anthropic.Anthropic(api_key=key) if key else None
+        return self._claude_client
+
+    @property
+    def tokenizer(self):
+        if self._tokenizer is _UNSET:
+            import tiktoken
+            try:
+                self._tokenizer = tiktoken.encoding_for_model(self.openai_model)
+            except KeyError:
+                self._tokenizer = tiktoken.get_encoding("cl100k_base")
+        return self._tokenizer
 
     def clean_text(self, text: str) -> str:
         if not text:
             return ""
         try:
             tokens = word_tokenize(text.lower())
-            stop_words = set(stopwords.words("english"))
-            bad = set(string.punctuation) | set("=~^`\\") | {"\u2022", "\u2013", "\u2014", "\u2015"}
-            filtered = [t for t in tokens if t not in bad and t not in stop_words]
+            filtered = [t for t in tokens if t not in self._bad_chars and t not in self._stop_words]
             return " ".join(filtered)
         except Exception as exc:
             print(f"Warning: Error cleaning text: {exc}")
@@ -81,7 +103,7 @@ class RedditSummarizer:
         return len(self.tokenizer.encode(text))
 
     def _format_timestamp(self, utc_ts: float) -> str:
-        dt = datetime.fromtimestamp(utc_ts, pytz.UTC)
+        dt = datetime.fromtimestamp(utc_ts, timezone.utc)
         return dt.astimezone(self.eastern_tz).strftime("%Y-%m-%d %H:%M:%S %Z")
 
     def get_recent_content(
@@ -91,11 +113,11 @@ class RedditSummarizer:
         clean: bool = True,
     ) -> Dict[str, List[Dict[str, Any]]]:
         subreddit = self.reddit.subreddit(subreddit_name)
-        cutoff = datetime.now(pytz.UTC) - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         posts: List[Dict[str, Any]] = []
         for post in subreddit.new(limit=100):
-            post_time = datetime.fromtimestamp(post.created_utc, pytz.UTC)
+            post_time = datetime.fromtimestamp(post.created_utc, timezone.utc)
             if post_time < cutoff:
                 break
             body = post.selftext or ""
@@ -112,7 +134,7 @@ class RedditSummarizer:
 
         comments: List[Dict[str, Any]] = []
         for comment in subreddit.comments(limit=500):
-            comment_time = datetime.fromtimestamp(comment.created_utc, pytz.UTC)
+            comment_time = datetime.fromtimestamp(comment.created_utc, timezone.utc)
             if comment_time < cutoff:
                 break
             body = getattr(comment, "body", "") or ""
@@ -167,7 +189,7 @@ class RedditSummarizer:
         self,
         content: Dict[str, List[Dict[str, Any]]],
         subreddit_name: str,
-    ) -> Tuple[List[TextBlockParam], List[Tuple[str, str]]]:
+    ) -> Tuple[List[dict], List[Tuple[str, str]]]:
         formatted = [f"Content from r/{subreddit_name}:", "", "POSTS:"]
         references: List[Tuple[str, str]] = []
 
@@ -208,7 +230,7 @@ class RedditSummarizer:
 
         try:
             documents, references = self.prepare_claude_content(content, subreddit_name)
-            message_content: List[TextBlockParam] = list(documents)
+            message_content: List[dict] = list(documents)
             message_content.append(
                 _make_text_block(
                     f"Provide a comprehensive summary of this Reddit content from r/{subreddit_name}. "
@@ -368,11 +390,15 @@ def save_summary_to_file(
     analysis_params: Dict[str, Any],
     content: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(EASTERN_TZ).strftime("%Y%m%d_%H%M%S")
+
+    output_dir = Path("output") / subreddit
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     saved_files: List[str] = []
 
-    summary_filename = f"summary_{subreddit}_{timestamp}.txt"
-    with open(summary_filename, "w", encoding="utf-8") as handle:
+    summary_path = output_dir / f"summary_{subreddit}_{timestamp}.txt"
+    with open(summary_path, "w", encoding="utf-8") as handle:
         handle.write("ANALYSIS PARAMETERS:\n")
         handle.write(f"Subreddit name: {analysis_params['subreddit']}\n")
         handle.write(f"Hours analyzed: {analysis_params['hours']}\n")
@@ -384,18 +410,19 @@ def save_summary_to_file(
         handle.write(f"API used: {analysis_params.get('api_used', 'N/A')}\n")
         if analysis_params.get("model"):
             handle.write(f"Model used: {analysis_params['model']}\n")
+        now_eastern = datetime.now(EASTERN_TZ)
         handle.write(
-            f"Summary generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}\n"
+            f"Summary generated at: {now_eastern.strftime('%Y-%m-%d %H:%M:%S %Z')}\n"
         )
         handle.write("\n" + "=" * 50 + "\n\n")
         handle.write(summary)
-    saved_files.append(summary_filename)
+    saved_files.append(str(summary_path))
 
     if content:
-        raw_filename = f"raw_data_{subreddit}_{timestamp}.json"
-        with open(raw_filename, "w", encoding="utf-8") as handle:
+        raw_path = output_dir / f"raw_data_{subreddit}_{timestamp}.json"
+        with open(raw_path, "w", encoding="utf-8") as handle:
             json.dump(content, handle, indent=2, ensure_ascii=False)
-        saved_files.append(raw_filename)
+        saved_files.append(str(raw_path))
 
     return saved_files
 

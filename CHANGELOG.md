@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-04-08
+
 ### Changed
+
+- `credentials.py`: added `get_reddit_client()` shared factory function; `comments.py`, `posts.py`, `sentiment.py`, and `summarize_claude_openai.py` now use it instead of constructing `praw.Reddit` independently.
+- `summarize_claude_openai.py`: API clients (`OpenAI`, `Anthropic`, `tiktoken`) are now lazy-initialized via properties — only created on first access. Stopword and punctuation sets cached as instance attributes instead of rebuilt per call. Replaced `pytz` with stdlib `zoneinfo`. Consolidated `save_summary_to_file` to save to `output/<subreddit>/` with Eastern timezone.
+- `subreddit_summary.py`: removed duplicate `save_to_output_dir`; now imports `save_summary_to_file` from `summarize_claude_openai`.
+- `clean_text.py`: cached stopwords and punctuation sets at module level via lazy helpers instead of rebuilding on every `clean_text()` call.
+- `comments.py`: replaced `pytz` with stdlib `zoneinfo`; converted all `input()`/`print()` calls to `click.prompt()`/`click.echo()`; merged duplicate menu items 7 and 8 (both pointed to `search_comments`); renumbered menu to 9 items; uses shared `get_reddit_client()`.
+- `posts.py`: uses shared `get_reddit_client()` from `credentials.py`.
+- `sentiment.py`: fixed naive `datetime.fromtimestamp()` to use explicit UTC→Eastern conversion; uses shared `get_reddit_client()`.
+
+### Fixed
+
+- `followup.py`: fixed two broken attribute references in the OpenAI path — `summarizer.client` → `summarizer.openai_client` and `summarizer.model_name` → `summarizer.openai_model`. These attributes never existed on `RedditSummarizer`; the OpenAI follow-up path would have raised `AttributeError` at runtime.
+- `CLAUDE.md`: added `reddit_streamer/src/streamer.py` to Key Files table; updated `credentials.py` description to include `get_reddit_client()`.
 
 ## [1.8.0] - 2026-04-07
 

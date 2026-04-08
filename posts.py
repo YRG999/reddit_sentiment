@@ -19,18 +19,14 @@ from praw.models import Comment, MoreComments, Submission, Subreddit
 from praw.exceptions import PRAWException
 from prawcore.exceptions import PrawcoreException
 
-from credentials import get_secret
+from credentials import get_reddit_client
 
 EASTERN_TZ = ZoneInfo("America/New_York")
 
 
 class RedditScraper:
     def __init__(self) -> None:
-        self.reddit: praw.Reddit = praw.Reddit(
-            client_id=get_secret("REDDIT_CLIENT_ID"),
-            client_secret=get_secret("REDDIT_CLIENT_SECRET"),
-            user_agent=get_secret("REDDIT_USER_AGENT"),
-        )
+        self.reddit: praw.Reddit = get_reddit_client()
 
     def get_subreddit(self, subreddit_name: str) -> Optional[Subreddit]:
         try:

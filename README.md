@@ -262,7 +262,7 @@ Prompts for subreddit, number of posts, and sort method (`hot` or `new`).
 
 ### `comments.py` -- comment/search utility
 
-Menu-driven CLI with 10 options for browsing Reddit: top posts, search, user karma, comment streaming (with rate limiting), and comment search. All actions are logged to a timestamped file.
+Menu-driven `click` CLI with 9 options for browsing Reddit: top posts, search, user karma, comment streaming (with rate limiting), and comment search. All actions are logged to a timestamped file.
 
 ```bash
 python comments.py

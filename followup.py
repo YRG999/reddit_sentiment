@@ -156,12 +156,12 @@ def ask_followup(summarizer: RedditSummarizer, api: str, prompt: str) -> tuple[s
         return answer, summarizer.ollama_model
 
     # default: openai
-    resp = summarizer.client.chat.completions.create(
-        model=summarizer.model_name,
+    resp = summarizer.openai_client.chat.completions.create(
+        model=summarizer.openai_model,
         messages=[{"role": "system", "content": system}] + messages,
     )
     answer = resp.choices[0].message.content or ""
-    return answer, summarizer.model_name
+    return answer, summarizer.openai_model
 
 
 def save_followup_to_file(
