@@ -92,6 +92,44 @@ The first time any code accesses `summarizer.openai_client`, the property method
 
 Imagine a house with three guest bedrooms. Eager initialization is like making all three beds, stocking all three bathrooms, and turning on all three heaters before any guests arrive — even if only one person is coming. Lazy initialization is like preparing a room only when a guest actually shows up.
 
+### Type checking with lazy-initialized properties
+
+**Problem**: Python type checkers like Pylance can't understand the sentinel pattern. They see:
+
+```python
+self._openai_client = _UNSET  # type: object (the sentinel)
+# ... later ...
+return self._openai_client  # type checker thinks this is object, not Optional[OpenAI]
+```
+
+Even though the runtime guarantees that `self._openai_client` will be an `OpenAI` instance or `None` by the time it's returned, the type checker sees a type mismatch because it tracks the initial assignment as `object` and can't prove the reassignment inside the property changes the type.
+
+**Solution**: Use `cast()` to tell the type checker "I've verified this at runtime, so trust me on the type":
+
+```python
+from typing import cast, Optional
+
+@property
+def openai_client(self) -> Optional["OpenAI"]:
+    if self._openai_client is _UNSET:
+        from openai import OpenAI
+        key = get_secret("OPENAI_API_KEY")
+        self._openai_client = OpenAI(api_key=key) if key else None
+    return cast(Optional["OpenAI"], self._openai_client)
+```
+
+The `cast(Optional["OpenAI"], self._openai_client)` line says: "Type checker, I know you think `self._openai_client` is an `object`, but I've verified at runtime it's actually `Optional[OpenAI]`, so use that type going forward."
+
+This is **not** a runtime conversion — it does nothing at runtime. It's purely a signal to the type checker: "trust me, I've thought about this." This is safe because:
+
+1. The lazy-init logic guarantees the type is correct
+2. If the logic changes, the type annotation can be updated to match
+3. It's better than using `# type: ignore` everywhere, which hides all type information
+
+### Analogy for non-programmers
+
+Think of a clothing rack at a thrift store. You hang up an old blanket as a placeholder while you wait for a donation to come in. The tag says "blanket" even though you know a jacket is coming. When a customer asks "what's on that rack?", the store owner says "trust me, that's actually a jacket even though the placeholder blanket is there right now." The `cast()` is that moment where the owner says "I know what I put there, it's a jacket, not a blanket."
+
 ---
 
 ## Lazy helpers and caching sets
