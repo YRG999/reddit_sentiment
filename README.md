@@ -117,6 +117,33 @@ Edit this file to change which models are used for summarization. Environment va
 
 Setting `openai.service_tier` to `"flex"` enables [Flex processing](https://developers.openai.com/api/docs/guides/flex-processing), which prices tokens at batch API rates. Responses may be slower and can return 429 during high demand. Remove the key or set it to `"auto"` for default processing.
 
+### Summarization Prompts (`config.yaml`)
+
+Prompts used for Reddit summarization are configurable in `config.yaml`. All three models (OpenAI, Claude, Ollama) use the same prompt template:
+
+```yaml
+prompt:
+  system: >
+    You are an expert analyst summarizing Reddit community discussions.
+    Your summaries are structured, objective, and grounded in the source content.
+  user: >
+    Analyze the Reddit content from r/{subreddit} and provide a structured summary with these sections:
+
+    **Themes**: Identify the 3–5 dominant topics or recurring themes in this period's posts and comments.
+
+    **Sentiment**: Describe the overall emotional tone of the community — positive, negative, mixed, or neutral — and note any polarizing topics or strong reactions.
+
+    **Notable Discussions**: Highlight 2–3 standout posts or comment threads, explaining why they are significant.
+
+    **Other Discussions by Topic**: Summarize any secondary or miscellaneous topics that emerged but didn't fit into the main themes. Group these by topic and include brief context. If there are no outlier discussions, omit this section.
+
+    **Summary**: A concise 2–3 sentence overview of what this subreddit was focused on during this period.
+
+    Use numbered references [n] to cite specific posts and comments. Be objective and base everything on the provided content.
+```
+
+The structured format ensures consistent, high-quality summaries across all backends. Edit the `prompt.system` and `prompt.user` keys to customize the summarization behavior.
+
 ### Standard `.env`
 
 API keys and Reddit credentials go in `.env`:

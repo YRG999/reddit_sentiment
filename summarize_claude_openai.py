@@ -9,7 +9,7 @@ import json
 import string
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional, Tuple, List, Dict, Any, TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
 
 from nltk.corpus import stopwords
@@ -18,14 +18,15 @@ from nltk.tokenize import word_tokenize
 from config import load_config
 from credentials import get_reddit_client, get_secret
 
-_UNSET = object()
+if TYPE_CHECKING:
+    import anthropic
+    import praw
+    import tiktoken
+    from openai import OpenAI
+
+_UNSET = object()  # pyright: ignore[assignment] - Sentinel for lazy initialization
 
 EASTERN_TZ = ZoneInfo("America/New_York")
-
-
-def _make_text_block(text: str) -> dict:
-    """Create a simple Anthropic TextBlockParam-compatible dict."""
-    return {"type": "text", "text": text}
 
 class RedditSummarizer:
     def __init__(self) -> None:
@@ -43,6 +44,11 @@ class RedditSummarizer:
         self.ollama_url = get_secret("OLLAMA_URL") or ollama_config.get("url", "http://localhost:11434/api/chat")
         self.ollama_model = get_secret("OLLAMA_MODEL") or models.get("ollama", "gemma3:12b")
 
+        # Load prompts from config
+        prompt_config = config.get("prompt", {})
+        self.system_prompt = prompt_config.get("system", "")
+        self.user_prompt_template = prompt_config.get("user", "")
+
         self.eastern_tz = EASTERN_TZ
         self.MAX_TOKENS = 8000
 
@@ -57,36 +63,36 @@ class RedditSummarizer:
         self._bad_chars = set(string.punctuation) | set("=~^`\\") | {"\u2022", "\u2013", "\u2014", "\u2015"}
 
     @property
-    def reddit(self):
+    def reddit(self) -> Optional["praw.Reddit"]:
         if self._reddit is _UNSET:
             self._reddit = get_reddit_client()
-        return self._reddit
+        return cast(Optional["praw.Reddit"], self._reddit)
 
     @property
-    def openai_client(self):
+    def openai_client(self) -> Optional["OpenAI"]:
         if self._openai_client is _UNSET:
             from openai import OpenAI
             key = get_secret("OPENAI_API_KEY")
             self._openai_client = OpenAI(api_key=key) if key else None
-        return self._openai_client
+        return cast(Optional["OpenAI"], self._openai_client)
 
     @property
-    def claude_client(self):
+    def claude_client(self) -> Optional["anthropic.Anthropic"]:
         if self._claude_client is _UNSET:
             import anthropic
             key = get_secret("ANTHROPIC_API_KEY")
             self._claude_client = anthropic.Anthropic(api_key=key) if key else None
-        return self._claude_client
+        return cast(Optional["anthropic.Anthropic"], self._claude_client)
 
     @property
-    def tokenizer(self):
+    def tokenizer(self) -> "tiktoken.Encoding":
         if self._tokenizer is _UNSET:
             import tiktoken
             try:
                 self._tokenizer = tiktoken.encoding_for_model(self.openai_model)
             except KeyError:
                 self._tokenizer = tiktoken.get_encoding("cl100k_base")
-        return self._tokenizer
+        return cast("tiktoken.Encoding", self._tokenizer)
 
     def clean_text(self, text: str) -> str:
         if not text:
@@ -100,7 +106,10 @@ class RedditSummarizer:
             return text
 
     def count_tokens(self, text: str) -> int:
-        return len(self.tokenizer.encode(text))
+        try:
+            return len(self.tokenizer.encode(text))
+        except Exception:
+            return len(text) // 4
 
     def _format_timestamp(self, utc_ts: float) -> str:
         dt = datetime.fromtimestamp(utc_ts, timezone.utc)
@@ -112,14 +121,17 @@ class RedditSummarizer:
         hours: int,
         clean: bool = True,
     ) -> Dict[str, List[Dict[str, Any]]]:
-        subreddit = self.reddit.subreddit(subreddit_name)
+        if not self.reddit:
+            raise RuntimeError("Reddit client not initialized. Check REDDIT_* credentials in .env")
+        # RuntimeError prevents execution from continuing, so self.reddit is guaranteed not None
+        subreddit = self.reddit.subreddit(subreddit_name)  # pyright: ignore[union-attr]
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         posts: List[Dict[str, Any]] = []
         for post in subreddit.new(limit=100):
             post_time = datetime.fromtimestamp(post.created_utc, timezone.utc)
             if post_time < cutoff:
-                break
+                continue
             body = post.selftext or ""
             posts.append(
                 {
@@ -136,7 +148,7 @@ class RedditSummarizer:
         for comment in subreddit.comments(limit=500):
             comment_time = datetime.fromtimestamp(comment.created_utc, timezone.utc)
             if comment_time < cutoff:
-                break
+                continue
             body = getattr(comment, "body", "") or ""
             comments.append(
                 {
@@ -158,9 +170,7 @@ class RedditSummarizer:
     ) -> Tuple[str, List[str]]:
         references: List[str] = []
         parts: List[str] = [
-            f"Summarize the following content from r/{subreddit_name}.",
-            "Include key themes, notable discussions, and overall sentiment.",
-            "Use numbered references [n].",
+            self.user_prompt_template.format(subreddit=subreddit_name),
             "",
             "POSTS:",
         ]
@@ -185,73 +195,39 @@ class RedditSummarizer:
 
         return "\n".join(parts), references
 
-    def prepare_claude_content(
-        self,
-        content: Dict[str, List[Dict[str, Any]]],
-        subreddit_name: str,
-    ) -> Tuple[List[dict], List[Tuple[str, str]]]:
-        formatted = [f"Content from r/{subreddit_name}:", "", "POSTS:"]
-        references: List[Tuple[str, str]] = []
-
-        for idx, post in enumerate(content.get("posts", []), start=1):
-            formatted.extend(
-                [
-                    f"Post {idx}:",
-                    f"Title: {post.get('title', '')}",
-                    f"Content: {post.get('content', '')}",
-                    f"Posted: {post.get('created_utc', '')}",
-                    "",
-                ]
-            )
-            references.append((f"Post {idx}", post.get("url", "")))
-
-        formatted.append("COMMENTS:")
-        for idx, comment in enumerate(content.get("comments", [])[:10], start=1):
-            formatted.extend(
-                [
-                    f"Comment {idx}:",
-                    f"Content: {comment.get('body', '')}",
-                    f"Posted: {comment.get('created_utc', '')}",
-                    "",
-                ]
-            )
-            references.append((f"Comment {idx}", comment.get("url", "")))
-
-        content_block = _make_text_block("\n".join(formatted))
-        return [content_block], references
-
     def summarize_with_claude(
         self,
         content: Dict[str, List[Dict[str, Any]]],
         subreddit_name: str,
-    ) -> str:
+    ) -> Tuple[str, List[str]]:
         if not self.claude_client:
-            return "Error: Anthropic API key not found."
+            return "Error: Anthropic API key not found.", []
 
         try:
-            documents, references = self.prepare_claude_content(content, subreddit_name)
-            message_content: List[dict] = list(documents)
-            message_content.append(
-                _make_text_block(
-                    f"Provide a comprehensive summary of this Reddit content from r/{subreddit_name}. "
-                    "Reference specific posts/comments."
-                )
-            )
+            summary_prompt, references = self.prepare_summary_prompt(content, subreddit_name)
             response = self.claude_client.messages.create(
                 model=self.claude_model,
                 max_tokens=4096,
-                messages=[{"role": "user", "content": message_content}],
+                messages=[
+                    {"role": "user", "content": summary_prompt}
+                ],
+                system=self.system_prompt,
             )
-            content_list = getattr(response, "content", None) or []
-            summary_text = content_list[0].text if content_list else ""
-            summary = summary_text.strip()
-            if not summary:
-                return "Error: Received empty summary from Claude"
+            if not response.content:
+                return "Error: Claude returned empty response", []
 
-            reference_block = "\n".join(f"[{ref}]({url})" for ref, url in references if url)
-            return f"{summary}\n\nReferences:\n{reference_block}"
+            first_block = response.content[0]
+            if not hasattr(first_block, "text"):
+                return f"Error: Unexpected Claude response format: {type(first_block)}", []
+
+            # Safe to cast to object with text attribute after hasattr check
+            summary = cast(Any, first_block).text.strip()
+            if not summary:
+                return "Error: Received empty summary from Claude", []
+
+            return summary, references
         except Exception as exc:
-            return f"Error generating summary with Claude: {exc}"
+            return f"Error generating summary with Claude: {exc}", []
 
     def summarize_with_openai(
         self,
@@ -286,11 +262,7 @@ class RedditSummarizer:
                     "messages": [
                         {
                             "role": "system",
-                            "content": (
-                                "You are a helpful assistant that summarizes Reddit content. "
-                                "Include key themes, notable discussions, and overall sentiment. "
-                                "Use numbered references [n]."
-                            ),
+                            "content": self.system_prompt,
                         },
                         {"role": "user", "content": summary_prompt},
                     ],
@@ -298,8 +270,12 @@ class RedditSummarizer:
                 if self.openai_service_tier:
                     create_kwargs["service_tier"] = self.openai_service_tier
                 chat_completion = self.openai_client.chat.completions.create(**create_kwargs)
+                if not chat_completion.choices:
+                    return "Error: OpenAI returned no choices", []
                 message = chat_completion.choices[0].message
-                summary_text = message.content or ""
+                if not message.content:
+                    return "Error: OpenAI returned empty content", []
+                summary_text = message.content.strip()
                 return summary_text, references
             except Exception as exc:
                 error_str = str(exc)
@@ -332,22 +308,22 @@ class RedditSummarizer:
             messages = [
                 {
                     "role": "system",
-                    "content": (
-                        "You are a helpful assistant that summarizes Reddit content. "
-                        "Include key themes, notable discussions, and overall sentiment. "
-                        "Use numbered references [n]."
-                    ),
+                    "content": self.system_prompt,
                 },
                 {"role": "user", "content": summary_prompt},
             ]
             response = chat(model=self.ollama_model, messages=messages)
-            if isinstance(response, dict):
-                summary = response.get("message", {}).get("content", "") or ""
-            else:
-                summary = getattr(getattr(response, "message", None), "content", "") or ""
 
-            if not summary.strip():
-                summary = "No summary generated by Ollama."
+            summary = ""
+            if isinstance(response, dict):
+                summary = response.get("message", {}).get("content", "").strip()
+            else:
+                message = getattr(response, "message", None)
+                if message:
+                    summary = getattr(message, "content", "").strip()
+
+            if not summary:
+                return "Error: Ollama returned empty response", []
             return summary, references
         except Exception as exc:
             return f"Error generating summary with Ollama: {exc}", []
@@ -366,10 +342,10 @@ class RedditSummarizer:
         filtered_posts = [
             post
             for post in content.get("posts", [])
-            if contains_topics(post.get("title")) or contains_topics(post.get("content"))
+            if contains_topics(post.get("title")) or contains_topics(post.get("raw_content"))
         ]
         filtered_comments = [
-            comment for comment in content.get("comments", []) if contains_topics(comment.get("body"))
+            comment for comment in content.get("comments", []) if contains_topics(comment.get("raw_body"))
         ]
         return {"posts": filtered_posts, "comments": filtered_comments}
 
@@ -487,8 +463,8 @@ def main() -> None:
                 formatted_summary = summarizer.format_summary_with_footnotes(summary, references)
                 model_used = summarizer.openai_model
             elif api_choice == "2":
-                summary_text = summarizer.summarize_with_claude(content, subreddit)
-                formatted_summary = summary_text
+                summary, references = summarizer.summarize_with_claude(content, subreddit)
+                formatted_summary = summarizer.format_summary_with_footnotes(summary, references)
                 model_used = summarizer.claude_model
             else:
                 summary, references = summarizer.summarize_with_ollama(content, subreddit)

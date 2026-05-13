@@ -13,6 +13,21 @@ _DEFAULT_CONFIG = {
         "claude": "claude-sonnet-4-5-20250929",
         "ollama": "gemma3:12b",
     },
+    "prompt": {
+        "system": (
+            "You are an expert analyst summarizing Reddit community discussions. "
+            "Your summaries are structured, objective, and grounded in the source content."
+        ),
+        "user": (
+            "Analyze the Reddit content from r/{subreddit} and provide a structured summary with these sections:\n\n"
+            "**Themes**: Identify the 3–5 dominant topics or recurring themes in this period's posts and comments.\n\n"
+            "**Sentiment**: Describe the overall emotional tone of the community — positive, negative, mixed, or neutral — and note any polarizing topics or strong reactions.\n\n"
+            "**Notable Discussions**: Highlight 2–3 standout posts or comment threads, explaining why they are significant.\n\n"
+            "**Other Discussions by Topic**: Summarize any secondary or miscellaneous topics that emerged but didn't fit into the main themes. Group these by topic and include brief context. If there are no outlier discussions, omit this section.\n\n"
+            "**Summary**: A concise 2–3 sentence overview of what this subreddit was focused on during this period.\n\n"
+            "Use numbered references [n] to cite specific posts and comments. Be objective and base everything on the provided content."
+        ),
+    },
     "openai": {
         "service_tier": None,
     },

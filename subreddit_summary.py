@@ -57,12 +57,9 @@ def prompt_for_api() -> str:
 
 def _summarize(summarizer: RedditSummarizer, api_choice: str, content, subreddit):
     """Dispatch to the appropriate summarizer and return (formatted_summary, model_used)."""
-    if api_choice == "claude":
-        formatted_summary = summarizer.summarize_with_claude(content, subreddit)
-        return formatted_summary, summarizer.claude_model
-
     dispatch = {
         "openai": (summarizer.summarize_with_openai, summarizer.openai_model),
+        "claude": (summarizer.summarize_with_claude, summarizer.claude_model),
         "ollama": (summarizer.summarize_with_ollama, summarizer.ollama_model),
     }
     summarize_fn, model_used = dispatch[api_choice]

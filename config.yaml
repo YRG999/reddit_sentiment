@@ -1,12 +1,30 @@
 # Model configuration for Reddit Sentiment summarizers.
-# Environment variables (OPENAI_SUMMARY_MODEL, OLLAMA_MODEL, OLLAMA_URL)
-# override these values when set.
+
+prompt:
+  system: >
+    You are an expert analyst summarizing Reddit community discussions.
+    Your summaries are structured, objective, and grounded in the source content.
+  user: >
+    Analyze the Reddit content from r/{subreddit} and provide a structured summary with these sections:
+
+    **Themes**: Identify the 3–5 dominant topics or recurring themes in this period's posts and comments.
+
+    **Sentiment**: Describe the overall emotional tone of the community — positive, negative, mixed, or neutral — and note any polarizing topics or strong reactions.
+
+    **Notable Discussions**: Highlight 2–3 standout posts or comment threads, explaining why they are significant.
+
+    **Other Discussions by Topic**: Summarize any secondary or miscellaneous topics that emerged but didn't fit into the main themes. Group these by topic and include brief context. If there are no outlier discussions, omit this section.
+
+    **Summary**: A concise 2–3 sentence overview of what this subreddit was focused on during this period.
+
+    Use numbered references [n] to cite specific posts and comments. Be objective and base everything on the provided content.
 
 models:
   # https://platform.openai.com/docs/models
   openai: gpt-5.4-nano
   # https://docs.anthropic.com/en/docs/about-claude/models
-  claude: claude-sonnet-4-6
+  # claude: claude-sonnet-4-6
+  claude: claude-haiku-4-5
   # https://ollama.com/search
   ollama: gemma3:12b
 

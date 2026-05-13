@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-05-13
+
+### Added
+
+- Unified `prompt` configuration in `config.yaml` with system and user message templates — shared across all three backends (OpenAI, Claude, Ollama)
+- Proper return type annotations to `RedditSummarizer` properties for Pylance compliance (`reddit`, `openai_client`, `claude_client`, `tokenizer`)
+- `TYPE_CHECKING` imports to enable type hints without circular imports at runtime
+- Pylance ignore directives with explanations for legitimate patterns (`_UNSET` sentinel, RuntimeError type narrowing)
+- Improved error handling in tokenization with character-count fallback (1 token ≈ 4 chars)
+
+### Fixed
+- **Critical**: Added null-check on Reddit client in `get_recent_content()` to prevent AttributeError when credentials are missing
+- **Critical**: Fixed cutoff filtering logic (changed `break` to `continue`) to prevent data loss when Reddit returns out-of-order results
+- **Critical**: Added bounds checking for OpenAI `choices[0]` array access to prevent IndexError on empty responses
+- **Critical**: Unified return types across all three summarization methods — all now return `(str, List[str])` tuples consistently
+- **Critical**: Fixed unsafe Claude response parsing with proper validation and type casting using `cast(Any, ...)`
+- Fixed topic filter in `filter_content_by_topics()` to use `raw_content`/`raw_body` instead of cleaned content — preserves punctuation like "C++", "Node.js"
+- Ollama summarizer now returns structured error messages instead of placeholder text for empty responses
+- Updated CLAUDE.md documentation regarding config.yaml precedence (removed inaccurate environment variable override claim)
+
+### Changed
+- Prompts are now configurable via `config.yaml` instead of hardcoded in Python
+- All three LLM backends now use identical prompt templates with improved structure
+- Improved prompts to explicitly request: themes (3–5 dominant topics), sentiment (emotional tone + polarizing topics), notable discussions, other discussions by topic, and summary
+- Consolidated duplicate prompt logic — `summarize_with_claude()`, `summarize_with_openai()`, and `summarize_with_ollama()` now share unified `prepare_summary_prompt()`
+
 ## [1.9.0] - 2026-04-08
 
 ### Changed

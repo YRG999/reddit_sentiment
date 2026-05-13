@@ -24,7 +24,7 @@ A collection of standalone Python CLI tools for fetching, summarizing, and analy
 ## Architecture Notes
 
 - **Credentials**: Always use `get_secret()` from `credentials.py`. Never use `os.getenv()` directly. Supports both `.env` plain values and 1Password `op://` references. Use `get_reddit_client()` for Reddit API access — do not construct `praw.Reddit` directly.
-- **Config**: Model names come from `config.yaml` via `config.py`. Environment variables override `config.yaml` when set.
+- **Config**: Model names and prompts come from `config.yaml` via `config.py`, with hardcoded defaults as fallback. All three backends (OpenAI, Claude, Ollama) use the same unified prompt template — edit `config.yaml` to customize summarization behavior.
 - **CLI style**: All CLIs use `click`. Use `click.prompt`, `click.confirm`, and `click.echo`. Interactive fallbacks when arguments are omitted.
 - **Output**: Summaries and raw data save to `output/<subreddit>/`. Logs go to `logs/`.
 - **Token management**: `clean_text()` in `summarize_claude_openai.py` lowercases text, removes punctuation, and strips NLTK English stop words before sending to LLMs.
