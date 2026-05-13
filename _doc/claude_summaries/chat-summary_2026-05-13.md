@@ -94,3 +94,72 @@
 - Updated CLAUDE.md architecture notes
 - Created comprehensive session summaries for documentation
 - All documentation follows markdown formatting standards ✓
+
+## Session 3
+
+### Claude Code & VS Code Integration Overview
+
+- **User question**: How to use Claude with VS Code and specifically VS Code 1.120 updates
+- **Agent used**: `claude-code-guide` agent to provide VS Code integration guidance
+
+### Claude Code in VS Code — Key Features Explained
+
+#### Installation & Access
+
+- Install "Claude Code" extension from VS Code Extensions marketplace
+- Click Spark icon in toolbar to open Claude panel
+- Keyboard shortcuts: `Cmd+Esc` (toggle focus), `Option+K` (insert file references)
+
+#### File Editing & Code Changes
+
+- Side-by-side diffs with review before applying changes
+- @-mentions for file/folder context with `@filename.ts` or `@filename.ts#5-10` syntax
+- Auto-accept mode available for advanced users
+
+#### Chat & Session Management
+
+- View and resume conversation history
+- Extended thinking toggle via `/` command menu
+- Context window indicator
+
+### VS Code 1.120 Features & Claude Code Impact
+
+#### 1. Markdown Improvements (📝)
+
+- VS Code 1.120 adds Markdown diff renderer (shows formatted text, not raw syntax)
+- **Impact on Claude Code**: When Claude suggests markdown changes (docs, comments), diff view now renders actual formatting (headings, bold, lists) instead of raw markdown syntax
+- Makes visual review of Claude's documentation changes much easier before accepting
+
+#### 2. Command Risk Assessment (⚠️)
+
+- Terminal commands now display risk badges:
+  - 🟢 Green = safe (read-only, prints)
+  - 🟠 Orange = caution (workspace mods, network calls)
+  - 🔴 Red = high risk (force push, deletions)
+- **Impact on Claude Code**: When Claude suggests commands in Plan mode, users see risk context and one-sentence explanation before execution
+- Improves safety when reviewing Claude's terminal suggestions
+
+#### 3. Token Optimization (💾)
+
+- New `chat.tools.compressOutput.enabled` setting strips progress bars, warnings, unchanged diffs before sending to Claude
+- BYOK models now display accurate token counts and thinking-effort adjustment
+- **Impact on Claude Code**: Reduces tokens sent to Claude, helps stay within context limits; developers can monitor real-time token usage
+
+### Practical Configuration
+
+Recommended VS Code settings for Claude Code:
+
+```json
+{
+  "chat.tools.compressOutput.enabled": true,
+  "claudeCode.initialPermissionMode": "plan"
+}
+```
+
+Pair Plan mode (review suggestions) with Markdown diff rendering (visual confirmation) and risk badges (command safety).
+
+### Session Notes
+
+- These are VS Code native features that enhance Claude Code workflows
+- Together they create safer, more visual review experience: Plan mode → risk badges → Markdown diffs → token efficiency
+- No changes to project code; informational session only
