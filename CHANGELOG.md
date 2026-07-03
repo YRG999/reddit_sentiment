@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-07-03
+
+### Changed
+
+- Upgraded `praw` 7.8.1 → 8.0.2 and `prawcore` 2.4.0 → 4.0.0
+- `get_recent_content()` now uses PRAW 8's timezone-aware `created_datetime` property instead of manual `created_utc` conversion; `_format_timestamp()` replaced by `_format_datetime()`
+
+### Added
+
+- Comment streams in `comments.py` now pass an `exception_handler` (new in PRAW 8) so transient network errors are logged and the stream resumes instead of terminating
+
 ## [1.10.0] - 2026-05-13
 
 ### Added
@@ -18,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling in tokenization with character-count fallback (1 token ≈ 4 chars)
 
 ### Fixed
+
 - **Critical**: Added null-check on Reddit client in `get_recent_content()` to prevent AttributeError when credentials are missing
 - **Critical**: Fixed cutoff filtering logic (changed `break` to `continue`) to prevent data loss when Reddit returns out-of-order results
 - **Critical**: Added bounds checking for OpenAI `choices[0]` array access to prevent IndexError on empty responses
@@ -28,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CLAUDE.md documentation regarding config.yaml precedence (removed inaccurate environment variable override claim)
 
 ### Changed
+
 - Prompts are now configurable via `config.yaml` instead of hardcoded in Python
 - All three LLM backends now use identical prompt templates with improved structure
 - Improved prompts to explicitly request: themes (3–5 dominant topics), sentiment (emotional tone + polarizing topics), notable discussions, other discussions by topic, and summary

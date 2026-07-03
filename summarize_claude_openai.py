@@ -111,8 +111,7 @@ class RedditSummarizer:
         except Exception:
             return len(text) // 4
 
-    def _format_timestamp(self, utc_ts: float) -> str:
-        dt = datetime.fromtimestamp(utc_ts, timezone.utc)
+    def _format_datetime(self, dt: datetime) -> str:
         return dt.astimezone(self.eastern_tz).strftime("%Y-%m-%d %H:%M:%S %Z")
 
     def get_recent_content(
@@ -129,7 +128,7 @@ class RedditSummarizer:
 
         posts: List[Dict[str, Any]] = []
         for post in subreddit.new(limit=100):
-            post_time = datetime.fromtimestamp(post.created_utc, timezone.utc)
+            post_time = post.created_datetime
             if post_time < cutoff:
                 continue
             body = post.selftext or ""
@@ -140,13 +139,13 @@ class RedditSummarizer:
                     "raw_content": body,
                     "score": post.score,
                     "url": f"https://www.reddit.com{post.permalink}",
-                    "created_utc": self._format_timestamp(post.created_utc),
+                    "created_utc": self._format_datetime(post_time),
                 }
             )
 
         comments: List[Dict[str, Any]] = []
         for comment in subreddit.comments(limit=500):
-            comment_time = datetime.fromtimestamp(comment.created_utc, timezone.utc)
+            comment_time = comment.created_datetime
             if comment_time < cutoff:
                 continue
             body = getattr(comment, "body", "") or ""
@@ -156,7 +155,7 @@ class RedditSummarizer:
                     "raw_body": body,
                     "score": comment.score,
                     "url": f"https://www.reddit.com{comment.permalink}",
-                    "created_utc": self._format_timestamp(comment.created_utc),
+                    "created_utc": self._format_datetime(comment_time),
                 }
             )
 

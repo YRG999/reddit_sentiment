@@ -21,6 +21,11 @@ def convert_utc_to_eastern(utc_timestamp: float) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
+def _stream_exception_handler(exception: Exception) -> None:
+    """Log transient stream errors so PRAW retries instead of terminating the stream."""
+    click.echo(f"Stream error, retrying: {exception}")
+
+
 class RedditAPI:
     def __init__(self):
         self.reddit: praw.Reddit = get_reddit_client()
@@ -69,7 +74,7 @@ class RedditAPI:
 
     def stream_comments(self, subreddit_name, limit=None):
         subreddit = self.reddit.subreddit(subreddit_name)
-        for i, comment in enumerate(subreddit.stream.comments()):
+        for i, comment in enumerate(subreddit.stream.comments(exception_handler=_stream_exception_handler)):
             if limit and i >= limit:
                 break
             yield {
@@ -97,7 +102,7 @@ class RedditAPI:
 
     def stream_comments_formatted(self, subreddit_name):
         subreddit = self.reddit.subreddit(subreddit_name)
-        for comment in subreddit.stream.comments():
+        for comment in subreddit.stream.comments(exception_handler=_stream_exception_handler):
             yield {
                 "datetime": convert_utc_to_eastern(comment.created_utc),
                 "datetime_raw": comment.created_utc,
